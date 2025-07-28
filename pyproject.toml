@@ -1,0 +1,53 @@
+[project]
+name = "inexmo"
+version = "0.1.0"
+description = "Inline extension modules"
+readme = "README.md"
+authors = [
+    { name = "virgesmith", email = "andrew@friarswood.net" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.3.2",
+    "pybind11>=3.0.0",
+    "setuptools>=80.9.0",
+    "types-setuptools>=80.9.0.20250529",
+]
+
+[project.optional-dependencies]
+examples = [
+    "pandas>=2.3.1",
+    "pandas-stubs>=2.3.0.250703",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.0",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "src/test"
+]
+addopts = "--cov=src/inexmo --cov-report html --cov-fail-under=90 --doctest-modules" #--doctest-glob=README.md"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["B", "D103", "E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/test/*.py" = ["D103"]
+
+[tool.mypy]
+strict = true
+disallow_untyped_defs = true
