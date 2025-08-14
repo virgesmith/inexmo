@@ -1,6 +1,6 @@
 # Inline Extension Modules
 
-Write and execute C or C++ inside your Python code! Here's how...
+Write and execute superfast C or C++ inside your Python code! Here's how...
 
 Write a function definition **in python**, add the `compile` decorator and put the C++ implementation in a docstr:
 
@@ -25,7 +25,7 @@ are detected.
 "vectorised" operations. You can either implement the vector function directly, or write a scalar function and make
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
-- Supports arguments by value, reference, and shared/unique pointers, with or without `const` qualifiers
+- Supports arguments by value, reference, and (dumb) pointer, with or without `const` qualifiers
 - Minimal includes by default for performance reasons, can add extra headers as necessary
 - Custom compiler and linker commands can be added
 
@@ -98,7 +98,7 @@ def calc_balances_cpp(data: npt.NDArray[int], rate: float, result: npt.NDArray[f
 Needless to say, the C++ implementation vastly outperforms the python (3.13) implementation for all but the smallest arrays:
 
 N | py (ms) | cpp (ms) | speedup (%)
---|---------|----------|------------
+--:|---------:|----------:|------------:
 1000 | 0.3 | 0.7 | -51
 10000 | 2.4 | 0.1 | 2382
 100000 | 25.6 | 0.6 | 4296
@@ -267,6 +267,7 @@ def do_something(array: Annotated[list[float], "py::list"]) -> int:
 
 - [ ] customisable location of modules (default seems to work ok)?
 - [ ] control over header file order
+- [ ] module builds sometimes need 2 runs to trigger
 
 
 ## See also
