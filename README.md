@@ -71,7 +71,7 @@ and extract the underlying arrays, taking advantage of the shallow-copy semantic
 from inexmo import compile
 
 @compile(extra_headers=["<pybind11/numpy.h>"])
-def calc_balances_cpp(data: Any, rate: float) -> Any:  # type: ignore[type-var]
+def calc_balances_cpp(data: Any, rate: float) -> Any:
     """
 ```
 ```cpp

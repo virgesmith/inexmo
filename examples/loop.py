@@ -6,13 +6,9 @@ import pandas as pd
 
 from inexmo import compile
 
-rng = np.random.default_rng(19937)
-
-rate = 0.001
-
 
 @compile(extra_headers=["<pybind11/numpy.h>"])
-def calc_balances_cpp(data: Any, rate: float) -> Any:  # type: ignore[type-var]
+def calc_balances_cpp(data: Any, rate: float) -> Any:
     """
     auto pd = py::module::import("pandas");
     auto result = pd.attr("Series")(py::arg("index") = data.attr("index"));
@@ -40,12 +36,16 @@ def calc_balances_py(data: pd.Series, rate: float) -> pd.Series:
     current_value = 0.0
     for i, value in data.items():
         current_value = (current_value + value) * (1 - rate)
-        result_a[i] = current_value
+        result_a[i] = current_value  # type: ignore[call-overload]
     return result
 
 
 def main() -> None:
     """Run a performance comparison for varying series lengths"""
+
+    rng = np.random.default_rng(19937)
+    rate = 0.001
+
     print("N | py (ms) | cpp (ms) | speedup (%)")
     print("-:|--------:|---------:|-----------:")
     for N in [1000, 10000, 100000, 1000000, 10000000]:
