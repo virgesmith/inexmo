@@ -47,49 +47,50 @@ It is not suitable for more complex operations (e.g. matrix multiplication)
 Implementing loops in optimised compiled code can be orders of magnitude faster than loops in Python. Consider this
 example: we have a series of cashflows and we need to compute a running balance. The complication is that a fee is
 applied to the balance at each step, making each successive value dependent on the previous one, which prevents any
-use of vectorisation.
+use of vectorisation. The fastest approach in python seems to be preallocating an empty series and accessing it via
+numpy:
 
 ```py
 def calc_balances_py(data: pd.Series, rate: float) -> pd.Series:
-    # cannot vectorise, since each value is dependent on the previous value
-    results = []
+    """Cannot vectorise, since each value is dependent on the previous value"""
+    result = pd.Series(index=data.index)
+    result_a = result.to_numpy()
     current_value = 0.0
-    for _, value in data.items():
+    for i, value in data.items():
         current_value = (current_value + value) * (1 - rate)
-        results.append(current_value)
-    return pd.Series(index=data.index, data=results)
+        result_a[i] = current_value
+    return result
 ```
 
-In C++ we do not have pandas types available to us, but since `pd.Series` and `pd.DataFrame` are implemented in terms of
-numpy arrays, we can simply pass them as `np.array` arguments. We cannot easily construct a `pd.Series` in C++ code,
-so in this example we construct the empty result in python and pass it as an argument, taking advantage of the
-shallow-copy semantics:
+In C++ we can take essentially the same approach. Although there is no direct C++ API for pandas types, since
+`pd.Series` and `pd.DataFrame` are implemented in terms of numpy arrays, we can use the python API to construct
+and extract the underlying arrays, taking advantage of the shallow-copy semantics. Series are passed as `Any`
+(translates to `py::object`) and so we need to explicitly add pybind11's numpy header:
 
 ```py
 from inexmo import compile
 
-@compile()
-def calc_balances_cpp(data: npt.NDArray[int], rate: float, result: npt.NDArray[float]) -> None:
+@compile(extra_headers=["<pybind11/numpy.h>"])
+def calc_balances_cpp(data: Any, rate: float) -> Any:  # type: ignore[type-var]
     """
 ```
 ```cpp
-    py::buffer_info dbuf = data.request();
-    py::buffer_info rbuf = result.request();
-    if (dbuf.ndim != 1 || rbuf.ndim != 1)
-        throw std::runtime_error("Input and output arrays must be 1D");
+    auto pd = py::module::import("pandas");
+    auto result = pd.attr("Series")(py::arg("index") = data.attr("index"));
 
-    py::ssize_t n = dbuf.shape[0];
-    if (rbuf.shape[0] != n)
-        throw std::runtime_error("Input and output arrays must have same length");
+    auto data_a = data.attr("to_numpy")().cast<py::array_t<int64_t>>();
+    auto result_a = result.attr("to_numpy")().cast<py::array_t<double>>();
 
-    auto d = data.unchecked<1>();
-    auto r = result.mutable_unchecked<1>();
+    auto n = data_a.request().shape[0];
+    auto d = data_a.unchecked<1>();
+    auto r = result_a.mutable_unchecked<1>();
 
     double current_value = 0.0;
     for (py::ssize_t i = 0; i < n; ++i) {
         current_value = (current_value + d(i)) * (1.0 - rate);
         r(i) = current_value;
     }
+    return result;
 ```
 ```py
     """
@@ -98,12 +99,12 @@ def calc_balances_cpp(data: npt.NDArray[int], rate: float, result: npt.NDArray[f
 Needless to say, the C++ implementation vastly outperforms the python (3.13) implementation for all but the smallest arrays:
 
 N | py (ms) | cpp (ms) | speedup (%)
---:|---------:|----------:|------------:
-1000 | 0.3 | 0.7 | -51
-10000 | 2.4 | 0.1 | 2382
-100000 | 25.6 | 0.6 | 4296
-1000000 | 233.5 | 4.3 | 5270
-10000000 | 2297.5 | 35.5 | 6375
+-:|--------:|---------:|-----------:
+1000 | 0.7 | 1.1 | -43
+10000 | 3.3 | 0.3 | 1067
+100000 | 35.1 | 1.7 | 1950
+1000000 | 311.5 | 6.5 | 4709
+10000000 | 2872.4 | 42.9 | 6601
 
 NB C++ timings include the allocation (in python) of the result.
 
