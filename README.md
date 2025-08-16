@@ -12,8 +12,8 @@ def max(i: int, j: int) -> int:  # type: ignore[empty-body]
   "return i > j ? i : j;"
 ```
 
-When Python loads this file, the source for an extension module is generated, including all functions defined in this
-way. The first time the function is called, the module is built and the attribute corresponding to the (empty) Python
+When Python loads this file, the source for an extension module is generated with all functions using this decorator.
+The first time any function is called, the module is built and the attribute corresponding to the (empty) Python
 function is replaced with the C++ implementation in the module.
 
 Modules are only rebuilt when changes to the any of the functions in the module (or decorator parameters)
@@ -22,16 +22,16 @@ are detected.
 ## Features
 
 - Supports [`numpy` arrays](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html) for customised
-"vectorised" operations. You can either implement the vector function directly, or write a scalar function and make
+"vectorised" operations. You can either implement the function directly, or write a scalar function and make
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
 - Supports arguments by value, reference, and (dumb) pointer, with or without `const` qualifiers
-- Minimal includes by default for performance reasons, can add extra headers as necessary
-- Custom compiler and linker commands can be added
+- Maps python types to C++ types with overridable defaults, and automatically includes minimal headers for compilation
+- Custom macros and extra headers/compiler/linker commands can be added as necessary
 
 Caveats & points to note:
 
-- Compiled functions cannot be nested, they must be defined at file scope
+- Support for compiled nested functions, methods, class methods and static methods is currently experimental
 - Functions with conflicting headers or compiler/linker settings must be implemented in separate files
 - Using auto-vectorisation incurs a major performance penalty if the function is called with scalar arguments
 - Auto-vectorisation naively applies operations to
@@ -75,9 +75,11 @@ def calc_balances_cpp(data: Any, rate: float) -> Any:
     """
 ```
 ```cpp
+    // Import pandas and construct an empty Series
     auto pd = py::module::import("pandas");
     auto result = pd.attr("Series")(py::arg("index") = data.attr("index"));
 
+    // Access the Series via numpy
     auto data_a = data.attr("to_numpy")().cast<py::array_t<int64_t>>();
     auto result_a = result.attr("to_numpy")().cast<py::array_t<double>>();
 
@@ -85,6 +87,7 @@ def calc_balances_cpp(data: Any, rate: float) -> Any:
     auto d = data_a.unchecked<1>();
     auto r = result_a.mutable_unchecked<1>();
 
+    // Perform the calculation
     double current_value = 0.0;
     for (py::ssize_t i = 0; i < n; ++i) {
         current_value = (current_value + d(i)) * (1.0 - rate);
@@ -105,8 +108,6 @@ N | py (ms) | cpp (ms) | speedup (%)
 100000 | 35.1 | 1.7 | 1950
 1000000 | 311.5 | 6.5 | 4709
 10000000 | 2872.4 | 42.9 | 6601
-
-NB C++ timings include the allocation (in python) of the result.
 
 Full code is in [examples/loop.py](./examples/loop.py). To run the example scripts, install the "examples" extra, e.g.
 `pip install inexmo[examples]`.
@@ -138,21 +139,20 @@ In C++ this tradeoff does not exist. A reasonably well optimised C++ implementat
 from inexmo import compile
 
 @compile(extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
-def calc_dist_matrix_c(p: np_array_t[float]) -> np_array_t[float]:  # type: ignore[empty-body]
+def calc_dist_matrix_c(points: npt.NDArray[np.float64]) -> npt.NDArray[float]:  # type: ignore[empty-body, type-var]
     """
 ```
 ```cpp
-    // compute distance matrix using optimised loops
-    py::buffer_info buf = p.request();
+    py::buffer_info buf = points.request();
     if (buf.ndim != 2)
         throw std::runtime_error("Input array must be 2D");
 
     size_t n = buf.shape[0];
     size_t d = buf.shape[1];
-    auto ptr = static_cast<double *>(buf.ptr);
 
     py::array_t<double> result({n, n});
     auto r = result.mutable_unchecked<2>();
+    auto p = points.unchecked<2>();
 
     // Avoid redundant computation for symmetric matrix
     #pragma omp parallel for schedule(static)
@@ -162,7 +162,7 @@ def calc_dist_matrix_c(p: np_array_t[float]) -> np_array_t[float]:  # type: igno
             double sum = 0.0;
             #pragma omp simd reduction(+:sum)
             for (size_t k = 0; k < d; ++k) {
-                double diff = ptr[i * d + k] - ptr[j * d + k];
+                double diff = p(i, k) - p(j, k);
                 sum += diff * diff;
             }
             double dist = std::sqrt(sum);
@@ -178,13 +178,13 @@ def calc_dist_matrix_c(p: np_array_t[float]) -> np_array_t[float]:  # type: igno
 
 Execution times (in ms) are shown below for each implementation for a varying number of 3d points. Even at relatively small sizes, the compiled implementation is significantly faster.
 
-size | Python | compiled | speedup
-----:|-------:|---------:|-------:
-100  |    0.5 |      2.4 | -80%
-300  |    3.2 |      1.4 | 123%
-1000 |   28.8 |     10.4 | 176%
-3000 |  201.2 |     68.5 | 194%
-10000| 2197.8 |    804.1 | 173%
+N | py (ms) | cpp (ms) | speedup (%)
+-:|--------:|---------:|-----------:
+100 | 0.5 | 2.5 | -82%
+300 | 3.2 | 2.2 | 46%
+1000 | 43.3 | 13.6 | 218%
+3000 | 208.2 | 82.5 | 152%
+10000 | 2269.0 | 803.2 | 183%
 
 Full code is in [examples/distance_matrix.py](./examples/distance_matrix.py).
 

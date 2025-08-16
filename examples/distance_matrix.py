@@ -12,18 +12,18 @@ def calc_dist_matrix_p(p: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
 
 
 @compile(extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
-def calc_dist_matrix_c(p: npt.NDArray[float]) -> npt.NDArray[float]:  # type: ignore[empty-body, type-var]
+def calc_dist_matrix_c(points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:  # type: ignore[empty-body]
     """
-    py::buffer_info buf = p.request();
+    py::buffer_info buf = points.request();
     if (buf.ndim != 2)
         throw std::runtime_error("Input array must be 2D");
 
     size_t n = buf.shape[0];
     size_t d = buf.shape[1];
-    auto ptr = static_cast<double *>(buf.ptr);
 
     py::array_t<double> result({n, n});
     auto r = result.mutable_unchecked<2>();
+    auto p = points.unchecked<2>();
 
     // Avoid redundant computation for symmetric matrix
     #pragma omp parallel for schedule(static)
@@ -33,7 +33,7 @@ def calc_dist_matrix_c(p: npt.NDArray[float]) -> npt.NDArray[float]:  # type: ig
             double sum = 0.0;
             #pragma omp simd reduction(+:sum)
             for (size_t k = 0; k < d; ++k) {
-                double diff = ptr[i * d + k] - ptr[j * d + k];
+                double diff = p(i, k) - p(j, k);
                 sum += diff * diff;
             }
             double dist = std::sqrt(sum);
@@ -46,7 +46,9 @@ def calc_dist_matrix_c(p: npt.NDArray[float]) -> npt.NDArray[float]:  # type: ig
 
 
 if __name__ == "__main__":
-    print("size, python, compiled, speedup")
+    print("N | py (ms) | cpp (ms) | speedup (%)")
+    print("-:|--------:|---------:|-----------:")
+
     for size in [100, 300, 1000, 3000, 10000]:
         p = np.random.uniform(size=(size, 3))
 
@@ -62,4 +64,4 @@ if __name__ == "__main__":
 
         speedup = elapsed_p / elapsed_c - 1.0
 
-        print(f"{size}, {elapsed_p * 1000:.1f}, {elapsed_c * 1000:.1f}, {speedup:.0%}")
+        print(f"{size} | {elapsed_p * 1000:.1f} | {elapsed_c * 1000:.1f} | {speedup:.0%}")

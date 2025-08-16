@@ -1,6 +1,6 @@
 # dummy generic types for references and pointers
 from enum import StrEnum
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, Self, get_args, get_origin
 
 import numpy as np
 
@@ -36,6 +36,8 @@ DEFAULT_TYPE_MAPPING = {
     dict: "std::unordered_map",
     tuple: "std::tuple",  # does not support ...
     Any: "py::object",
+    Self: "py::object",
+    type: "py::object",
 }
 
 header_requirements = {
