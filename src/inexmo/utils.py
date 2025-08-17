@@ -31,3 +31,11 @@ def translate_function_signature(func: Callable[..., Any]) -> tuple[str, set[str
         else:
             args.append(f"{cpptype} {var_name}")
     return f"[]({', '.join(args)})" + (f" -> {ret}" if ret else ""), headers
+
+
+def get_function_scope(func: Callable[..., Any]) -> tuple[str, ...]:
+    """
+    Returns the name of the class for class and instance methods
+    NB Does not work for static methods
+    """
+    return tuple(s for s in func.__qualname__.split(".")[:-1] if s != "<locals>")

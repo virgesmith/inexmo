@@ -2,7 +2,8 @@
 
 Write and execute superfast C or C++ inside your Python code! Here's how...
 
-Write a function definition **in python**, add the `compile` decorator and put the C++ implementation in a docstr:
+Write a function or method definition **in python**, add the `compile` decorator and put the C++ implementation in a
+docstr:
 
 ```py
 import inexmo
@@ -31,13 +32,15 @@ box may vary, e.g. on a mac, you may need to manually `brew install libomp` for 
 
 Caveats & points to note:
 
-- Support for compiled nested functions, methods, class methods and static methods is currently experimental
+- Compiled lambdas are not supported but nested functions are, in a limited way - they cannot capture variables from their enclosing scope.
 - Functions with conflicting headers or compiler/linker settings must be implemented in separate files
 - Using auto-vectorisation incurs a major performance penalty if the function is called with scalar arguments
 - Auto-vectorisation naively applies operations to
 [vector inputs sequentially](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html#vectorizing-functions).
 It is not suitable for more complex operations (e.g. matrix multiplication)
 - There is currently no way to change the order header files are included in the module source code
+- For methods, annotations must be provided for the context: `self: Self` for instance methods, or `cls: type` for class
+methods.
 - IDE syntax highlighting and linting probably won't work correctly for inline C or C++ code.
 
 ## Performance

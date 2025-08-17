@@ -1,58 +1,87 @@
 from typing import Self
 
-# testing not interference with class with same name in different module
-import other_x
+import pytest
+from other_module import Base, ClassA
 
 from inexmo import compile
+from inexmo.utils import get_function_scope
 
 
-class X:
-    Y: int = 5
-    Z: int = 6
+class ClassB(Base):
+    X: str = "B"
 
     def __init__(self) -> None:
-        self.x = 1
+        self.x = 2
 
     @compile()
     def method(self: Self) -> int:  # type: ignore[empty-body]
         """
         // extract instance variable
-        auto x = self.attr("x").cast<int>() + 10;
-        // reassign
-        self.attr("x") = x;
-        return x;
+        return self.attr("x").cast<int>();
         """
 
     @staticmethod
     @compile()
-    def static_method() -> int:  # type: ignore[empty-body]
+    def static_method(i: int) -> int:  # type: ignore[empty-body]
         """
-        // need to jump through hoops...
-        auto cls = py::module::import("test_method").attr("X");
-        // extract class variable
-        int z = cls.attr("Z").cast<int>() + 1000;
-        cls.attr("Z") = z;
-        return z;
+        return i + 1000;
         """
 
     @classmethod
     @compile()
-    def class_method(cls: type) -> int:  # type: ignore[empty-body]
+    def class_method(cls: type) -> str:  # type: ignore[empty-body]
         """
-        // extract Y (easier as we have class already)
-        auto y = cls.attr("Y").cast<int>() + 100;
-        cls.attr("Y") = y;
-        return y;
+        // extract X from cls arg
+        auto val = cls.attr("X").cast<std::string>();
+        return val;
         """
+
+
+class ClassC(Base):
+    X: str = "C"
+
+    @compile()
+    def method(self: Self) -> int:  # type: ignore[empty-body]
+        """
+        return 3;
+        """
+
+    @classmethod
+    @compile()
+    def class_method(cls: type) -> str:  # type: ignore[empty-body]
+        """
+        // extract X from cls arg
+        auto val = cls.attr("X").cast<std::string>();
+        return val;
+        """
+
+
+def test_function_scope() -> None:
+    assert get_function_scope(ClassA.method) == ("ClassA",)
 
 
 def test_methods() -> None:
-    x = X()
-    assert x.method() == x.x
-    assert X.class_method() == X.Y == 105
-    assert X.static_method() == X.Z == 1006
+    a = ClassA()
+    b = ClassB()
+    c = ClassC()
 
-    assert other_x.X.class_method() == "X"
+    def f(obj: Base) -> int:
+        return obj.method()
+
+    # test scope resolution works for instance methods
+    assert a.method() == f(a) == 1
+    assert b.method() == f(b) == 2
+    assert c.method() == f(c) == 3
+
+    # test scope resolution works for class methods
+    assert a.class_method() == ClassA.class_method() == "A"
+    assert b.class_method() == ClassB.class_method() == "B"
+    assert c.class_method() == ClassC.class_method() == "C"
+
+    # test static method
+    with pytest.raises(AttributeError):
+        a.static_method(6)
+    assert b.static_method(6) == 1006
 
 
 if __name__ == "__main__":

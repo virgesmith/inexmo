@@ -15,7 +15,19 @@ from setuptools import setup
 
 from inexmo import __version__ as version
 from inexmo.errors import CompilationError
-from inexmo.utils import translate_function_signature
+from inexmo.utils import get_function_scope, translate_function_signature
+
+
+@dataclass(frozen=True)
+class FunctionSpec:
+    name: str
+    body: str
+    scope: tuple[str, ...]
+
+    def qualified_cpp_name(self) -> str:
+        if self.scope:
+            return f"_{'_'.join(self.scope)}_{self.name}"
+        return f"_{self.name}"
 
 
 @dataclass
@@ -24,7 +36,7 @@ class ModuleSpec:
     Dataclass for accumulating functions to be built within a module
     """
 
-    functions: dict[str, str] = field(default_factory=dict[str, str])
+    functions: set[FunctionSpec] = field(default_factory=set[FunctionSpec])
     headers: set[str] = field(default_factory=set[str])
     define_macros: set[str] = field(default_factory=set[str])
     extra_compile_args: set[str] = field(default_factory=set[str])
@@ -32,15 +44,14 @@ class ModuleSpec:
 
     def add_function(
         self,
-        name: str,
-        body: str,
+        function: FunctionSpec,
         *,
         headers: set[str] | None = None,
         define_macros: set[str] | None = None,
         extra_compile_args: set[str] | None = None,
         extra_link_args: set[str] | None = None,
     ) -> Self:
-        self.functions[name] = body
+        self.functions.add(function)
         self.headers |= headers or set()
         self.define_macros = define_macros or set()
         self.extra_compile_args |= extra_compile_args or set()
@@ -51,7 +62,8 @@ class ModuleSpec:
         headers = "\n".join(f"#include {h}" for h in self.headers)
 
         function_defs = "\n".join(
-            _function_template.format(function_name=k, function_body=v) for k, v in self.functions.items()
+            _function_template.format(function_name=f.qualified_cpp_name(), function_body=f.body)
+            for f in self.functions
         )
         # create the code without the hash
         code = _module_template.format(
@@ -190,6 +202,10 @@ def compile(
 
     def register_function(func: Callable[..., Any]) -> Callable[..., Any]:
         """This registers the function, actual compilation is deferred"""
+        scope = get_function_scope(func)
+
+        print(f"{scope=}")
+
         sig, headers = translate_function_signature(func)
         module_name = f"{Path(inspect.getfile(func)).stem}_ext"  # noqa: F821
         function_body = sig + " {" + (func.__doc__ or "") + "}"
@@ -198,9 +214,10 @@ def compile(
             function_body = f"py::vectorize({function_body})"
             headers.add("<pybind11/numpy.h>")
 
+        function_spec = FunctionSpec(name=func.__name__, body=function_body, scope=scope)
+
         _module_registry[module_name].add_function(
-            func.__name__,
-            function_body,
+            function_spec,
             headers=headers | set(extra_headers or []),
             define_macros=set(define_macros or []),
             extra_compile_args=set(extra_compile_args or []),
@@ -210,7 +227,7 @@ def compile(
         @wraps(func)
         def call_function(*args: Any, **kwargs: Any) -> Any:
             """Compilation is deferred until here (and cached)"""
-            return _get_function(module_name, func.__name__)(*args, **kwargs)
+            return _get_function(module_name, function_spec.qualified_cpp_name())(*args, **kwargs)
 
         return call_function
 
