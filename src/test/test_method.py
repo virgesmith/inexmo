@@ -80,7 +80,7 @@ def test_methods() -> None:
 
     # test static method
     with pytest.raises(AttributeError):
-        a.static_method(6)
+        a.static_method(6)  # type: ignore[attr-defined]
     assert b.static_method(6) == 1006
 
 

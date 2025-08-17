@@ -266,7 +266,6 @@ def do_something(array: Annotated[list[float], "py::list"]) -> int:
     ...
 ```
 
-
 ## TODO
 
 - [ ] customisable location of modules (default seems to work ok)?
