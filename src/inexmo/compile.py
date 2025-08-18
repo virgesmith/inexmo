@@ -168,13 +168,11 @@ def _build_module_impl(
 @cache
 def _build_module(module_name: str) -> object:
     _build_module_impl(module_name, _module_registry[module_name])
-    # print(f"decorator {module_name}")
     return importlib.import_module(f"{module_name}.{module_name}")
 
 
 @cache
 def _get_function(module_name: str, function_name: str) -> Any:
-    # print(f"decorator {module_name} {function_name}")
     module = _build_module(module_name)
     return getattr(module, function_name)
 
@@ -203,8 +201,6 @@ def compile(
     def register_function(func: Callable[..., Any]) -> Callable[..., Any]:
         """This registers the function, actual compilation is deferred"""
         scope = get_function_scope(func)
-
-        print(f"{scope=}")
 
         sig, headers = translate_function_signature(func)
         module_name = f"{Path(inspect.getfile(func)).stem}_ext"  # noqa: F821

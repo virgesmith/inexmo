@@ -214,6 +214,8 @@ Python | C++
 `dict` | `std::unordered_map`
 `tuple` | `std::tuple`
 `Any` | `py::object`
+`Self` | `py::object`
+`type` | `py::type`
 
 Thus, `dict[str, list[float]]` becomes `std::unordered_map<std::string, std::vector<double>>`
 

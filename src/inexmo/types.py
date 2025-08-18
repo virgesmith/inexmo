@@ -37,7 +37,7 @@ DEFAULT_TYPE_MAPPING = {
     tuple: "std::tuple",  # does not support ...
     Any: "py::object",
     Self: "py::object",
-    type: "py::object",
+    type: "py::type",
 }
 
 header_requirements = {

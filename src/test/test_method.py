@@ -60,7 +60,7 @@ def test_function_scope() -> None:
     assert get_function_scope(ClassA.method) == ("ClassA",)
 
 
-def test_methods() -> None:
+def test_method() -> None:
     a = ClassA()
     b = ClassB()
     c = ClassC()
@@ -73,16 +73,30 @@ def test_methods() -> None:
     assert b.method() == f(b) == 2
     assert c.method() == f(c) == 3
 
+
+def test_method_incorrect_usage() -> None:
+    with pytest.raises(TypeError):
+        ClassA.method()  # type: ignore[call-arg]
+    # C++ impl should raise same error type as python - they are slightly different though:
+    # TypeError: ClassA.method() missing 1 required positional argument: 'self'
+    # TypeError: _ClassB_method(): incompatible function arguments.
+    with pytest.raises(TypeError):
+        ClassB.method()
+
+
+def test_class_method() -> None:
+    a = ClassA()
+    b = ClassB()
+    c = ClassC()
+
     # test scope resolution works for class methods
     assert a.class_method() == ClassA.class_method() == "A"
     assert b.class_method() == ClassB.class_method() == "B"
     assert c.class_method() == ClassC.class_method() == "C"
 
-    # test static method
+
+def test_static_method() -> None:
+    b = ClassB()
     with pytest.raises(AttributeError):
-        a.static_method(6)  # type: ignore[attr-defined]
-    assert b.static_method(6) == 1006
-
-
-if __name__ == "__main__":
-    test_methods()
+        ClassA.static_method(6)  # type: ignore[attr-defined]
+    assert ClassB.static_method(6) == b.static_method(6) == 1006
