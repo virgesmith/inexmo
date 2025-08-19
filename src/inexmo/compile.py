@@ -4,7 +4,7 @@ import os
 import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
-from functools import cache, wraps
+from functools import cache, lru_cache, wraps
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable, Self
@@ -59,19 +59,28 @@ class ModuleSpec:
         return self
 
     def make_source(self, module_name: str) -> tuple[str, str]:
+        # TODO rough sort of headers?:
+        # 1. "?.h" user headers
+        # 2. <?.h> library headers
+        # 3. <?> stdlib
+        # 4. <c?> c headers
         headers = "\n".join(f"#include {h}" for h in self.headers)
 
+        # sort to prevent rebuilding when nothing has changed but the function ordering
         function_defs = "\n".join(
-            _function_template.format(function_name=f.qualified_cpp_name(), function_body=f.body)
-            for f in self.functions
+            sorted(
+                _function_template.format(function_name=f.qualified_cpp_name(), function_body=f.body)
+                for f in self.functions
+            )
         )
         # create the code without the hash
         code = _module_template.format(
             version=version,
             extra_headers=headers,
-            define_macros=" ".join(self.define_macros),
-            extra_compile_args=" ".join(self.extra_compile_args),
-            extra_link_args=" ".join(self.extra_link_args),
+            # hmmm, ordering might be important here
+            define_macros=" ".join(sorted(self.define_macros)),
+            extra_compile_args=" ".join(sorted(self.extra_compile_args)),
+            extra_link_args=" ".join(sorted(self.extra_link_args)),
             module_name=module_name,
             function_definitions=function_defs,
         )
@@ -165,13 +174,13 @@ def _build_module_impl(
         os.chdir(cwd)
 
 
-@cache
+@cache  # unlimited module cache
 def _build_module(module_name: str) -> object:
     _build_module_impl(module_name, _module_registry[module_name])
     return importlib.import_module(f"{module_name}.{module_name}")
 
 
-@cache
+@lru_cache  # limited function cache
 def _get_function(module_name: str, function_name: str) -> Any:
     module = _build_module(module_name)
     return getattr(module, function_name)
