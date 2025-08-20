@@ -97,17 +97,17 @@ class CppTypeTree:
             t = self.qualfier.format(t)
         return t
 
-    def headers(self, mapping: dict[str, str], _collected: set[str] | None = None) -> set[str]:
+    def headers(self, mapping: dict[str, str], _collected: list[str] | None = None) -> list[str]:
         """
         Returns headers needed based on the types in the structure
         2nd argument used internally to collect recursively
         """
-        _collected = _collected or set()
+        _collected = _collected or []
         # if you override the C++ signature, you may need to explicitly supply any header required
         if self.override:
             return _collected
         if h := mapping.get(self.type or ""):
-            _collected.add(h)
+            _collected.append(h)
         for st in self.subtypes:
             _collected = st.headers(mapping, _collected)
         return _collected

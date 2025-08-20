@@ -15,17 +15,16 @@ def platform_specific(settings: dict[Platform, list[str]]) -> list[str] | None:
     return settings.get(cast(Platform, platform.system()))
 
 
-def translate_function_signature(func: Callable[..., Any]) -> tuple[str, set[str]]:
+def translate_function_signature(func: Callable[..., Any]) -> tuple[str, list[str]]:
     "map python signature to C++ equivalent"
     arg_spec = getfullargspec(func)
 
-    headers = set()
-
+    headers = []
     args = []
     ret: str | None = None
     for var_name, type_ in arg_spec.annotations.items():
         cpptype = translate_type(type_)
-        headers |= cpptype.headers(header_requirements)
+        headers.extend(cpptype.headers(header_requirements))
         if var_name == "return":
             ret = str(cpptype)
         else:

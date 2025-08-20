@@ -2,6 +2,7 @@ from typing import Annotated
 
 import numpy.typing as npt
 
+from inexmo.compile import _deduplicate
 from inexmo.types import CppQualifier, header_requirements, parse_annotation, translate_type
 
 
@@ -20,7 +21,7 @@ def test_basic_types() -> None:
 
     cpptype = translate_type(str)
     assert str(cpptype) == "std::string"
-    assert cpptype.headers(header_requirements) == {"<string>"}
+    assert cpptype.headers(header_requirements) == ["<string>"]
 
     # FIXME
     # cpptype = translate_type(bytes)
@@ -31,29 +32,30 @@ def test_basic_types() -> None:
 def test_specialised_types() -> None:
     cpptype = translate_type(list[int])
     assert str(cpptype) == "std::vector<int>"
-    assert cpptype.headers(header_requirements) == {"<pybind11/stl.h>"}
+    assert cpptype.headers(header_requirements) == ["<pybind11/stl.h>"]
 
     cpptype = translate_type(list[float])
     assert str(cpptype) == "std::vector<double>"
-    assert cpptype.headers(header_requirements) == {"<pybind11/stl.h>"}
+    assert cpptype.headers(header_requirements) == ["<pybind11/stl.h>"]
 
     cpptype = translate_type(set[str])
     assert str(cpptype) == "std::unordered_set<std::string>"
-    assert cpptype.headers(header_requirements) == {"<pybind11/stl.h>", "<string>"}
+    assert cpptype.headers(header_requirements) == ["<pybind11/stl.h>", "<string>"]
 
     cpptype = translate_type(dict[str, list[bool]])
     assert str(cpptype) == "std::unordered_map<std::string, std::vector<bool>>"
-    assert cpptype.headers(header_requirements) == {"<pybind11/stl.h>", "<string>"}
+    # pybind11/stl.h gets pulled in twice
+    assert _deduplicate(cpptype.headers(header_requirements)) == ["<pybind11/stl.h>", "<string>"]
 
 
 def test_numpy_types() -> None:
     cpptype = translate_type(npt.NDArray[int])
     assert str(cpptype) == "py::array_t<int>"
-    assert cpptype.headers(header_requirements) == {"<pybind11/numpy.h>"}
+    assert cpptype.headers(header_requirements) == ["<pybind11/numpy.h>"]
 
     cpptype = translate_type(npt.NDArray[float])
     assert str(cpptype) == "py::array_t<double>"
-    assert cpptype.headers(header_requirements) == {"<pybind11/numpy.h>"}
+    assert cpptype.headers(header_requirements) == ["<pybind11/numpy.h>"]
 
 
 def test_parse_annotation() -> None:

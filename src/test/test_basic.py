@@ -13,22 +13,22 @@ def test_signature_translation() -> None:
     def f(_i: int) -> None:
         ""
 
-    assert translate_function_signature(f) == ("[](int _i) -> void", set())
+    assert translate_function_signature(f) == ("[](int _i) -> void", [])
 
     def f2(a: float, b: str, c: bool) -> int:  # type: ignore[empty-body]
         ""
 
-    assert translate_function_signature(f2) == ("[](double a, std::string b, bool c) -> int", {"<string>"})
+    assert translate_function_signature(f2) == ("[](double a, std::string b, bool c) -> int", ["<string>"])
 
     def f3(a: float, b: Annotated[str, CppQualifier.CRef], c: bool) -> int:  # type: ignore[empty-body]
         ""
 
-    assert translate_function_signature(f3) == ("[](double a, const std::string& b, bool c) -> int", {"<string>"})
+    assert translate_function_signature(f3) == ("[](double a, const std::string& b, bool c) -> int", ["<string>"])
 
     def f4(a: float, b: Annotated[str, "const char*"], c: bool) -> int:  # type: ignore[empty-body]
         ""
 
-    assert translate_function_signature(f4) == ("[](double a, const char* b, bool c) -> int", set())
+    assert translate_function_signature(f4) == ("[](double a, const char* b, bool c) -> int", [])
 
 
 def test_platform_specific() -> None:
@@ -46,10 +46,10 @@ def test_platform_specific() -> None:
 
 
 def test_parse_macros() -> None:
-    assert _parse_macros(set()) == {}
-    assert _parse_macros({"NDEBUG"}) == {"NDEBUG": None}
-    assert _parse_macros({"VER=3"}) == {"VER": "3"}
-    assert _parse_macros({"NDEBUG", "VER=3"}) == {"NDEBUG": None, "VER": "3"}
+    assert _parse_macros([]) == {}
+    assert _parse_macros(["NDEBUG"]) == {"NDEBUG": None}
+    assert _parse_macros(["VER=3"]) == {"VER": "3"}
+    assert _parse_macros(["NDEBUG", "VER=3"]) == {"NDEBUG": None, "VER": "3"}
 
 
 @compile()

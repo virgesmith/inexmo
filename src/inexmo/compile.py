@@ -18,6 +18,11 @@ from inexmo.errors import CompilationError
 from inexmo.utils import get_function_scope, translate_function_signature
 
 
+def _deduplicate(params: list[str]) -> list[str]:
+    """Remove duplicates from a list while preserving order."""
+    return list(dict.fromkeys(params))
+
+
 @dataclass(frozen=True)
 class FunctionSpec:
     name: str
@@ -37,25 +42,25 @@ class ModuleSpec:
     """
 
     functions: set[FunctionSpec] = field(default_factory=set[FunctionSpec])
-    headers: set[str] = field(default_factory=set[str])
-    define_macros: set[str] = field(default_factory=set[str])
-    extra_compile_args: set[str] = field(default_factory=set[str])
-    extra_link_args: set[str] = field(default_factory=set[str])
+    headers: list[str] = field(default_factory=list[str])
+    define_macros: list[str] = field(default_factory=list[str])
+    extra_compile_args: list[str] = field(default_factory=list[str])
+    extra_link_args: list[str] = field(default_factory=list[str])
 
     def add_function(
         self,
         function: FunctionSpec,
         *,
-        headers: set[str] | None = None,
-        define_macros: set[str] | None = None,
-        extra_compile_args: set[str] | None = None,
-        extra_link_args: set[str] | None = None,
+        headers: list[str] | None = None,
+        define_macros: list[str] | None = None,
+        extra_compile_args: list[str] | None = None,
+        extra_link_args: list[str] | None = None,
     ) -> Self:
         self.functions.add(function)
-        self.headers |= headers or set()
-        self.define_macros = define_macros or set()
-        self.extra_compile_args |= extra_compile_args or set()
-        self.extra_link_args |= extra_link_args or set()
+        self.headers += headers or []
+        self.define_macros += define_macros or []
+        self.extra_compile_args += extra_compile_args or []
+        self.extra_link_args += extra_link_args or []
         return self
 
     def make_source(self, module_name: str) -> tuple[str, str]:
@@ -64,7 +69,7 @@ class ModuleSpec:
         # 2. <?.h> library headers
         # 3. <?> stdlib
         # 4. <c?> c headers
-        headers = "\n".join(f"#include {h}" for h in self.headers)
+        headers = "\n".join(f"#include {h}" for h in _deduplicate(self.headers))
 
         # sort to prevent rebuilding when nothing has changed but the function ordering
         function_defs = "\n".join(
@@ -77,10 +82,10 @@ class ModuleSpec:
         code = _module_template.format(
             version=version,
             extra_headers=headers,
-            # hmmm, ordering might be important here
-            define_macros=" ".join(sorted(self.define_macros)),
-            extra_compile_args=" ".join(sorted(self.extra_compile_args)),
-            extra_link_args=" ".join(sorted(self.extra_link_args)),
+            # do we need to deduplicate? or will this break something?
+            define_macros=" ".join(self.define_macros),
+            extra_compile_args=" ".join(_deduplicate(self.extra_compile_args)),
+            extra_link_args=" ".join(self.extra_link_args),
             module_name=module_name,
             function_definitions=function_defs,
         )
@@ -119,7 +124,7 @@ module_root_dir = Path("./ext")
 sys.path.append(str(module_root_dir))
 
 
-def _parse_macros(macro_list: set[str]) -> dict[str, str | None]:
+def _parse_macros(macro_list: list[str]) -> dict[str, str | None]:
     """Map ["DEF1", "DEF2=3"] to {"DEF1": None, "DEF2": "3"}"""
     return {kv[0]: kv[1] if len(kv) == 2 else None for d in macro_list for kv in [d.split("=", 1)]}
 
@@ -151,9 +156,9 @@ def _build_module_impl(
         Pybind11Extension(
             ext_name,
             ["module.cpp"],
-            define_macros=list(_parse_macros(module_spec.define_macros).items()),
-            extra_compile_args=list(module_spec.extra_compile_args),
-            extra_link_args=list(module_spec.extra_link_args),
+            define_macros=list(_parse_macros(_deduplicate(module_spec.define_macros)).items()),
+            extra_compile_args=_deduplicate(module_spec.extra_compile_args),
+            extra_link_args=_deduplicate(module_spec.extra_link_args),
             include_dirs=[np.get_include()],
             cxx_std=20,
         )
@@ -217,16 +222,16 @@ def compile(
 
         if vectorise:
             function_body = f"py::vectorize({function_body})"
-            headers.add("<pybind11/numpy.h>")
+            headers.append("<pybind11/numpy.h>")
 
         function_spec = FunctionSpec(name=func.__name__, body=function_body, scope=scope)
 
         _module_registry[module_name].add_function(
             function_spec,
-            headers=headers | set(extra_headers or []),
-            define_macros=set(define_macros or []),
-            extra_compile_args=set(extra_compile_args or []),
-            extra_link_args=set(extra_link_args or []),
+            headers=headers + (extra_headers or []),
+            define_macros=define_macros or [],
+            extra_compile_args=extra_compile_args or [],
+            extra_link_args=extra_link_args or [],
         )
 
         @wraps(func)
