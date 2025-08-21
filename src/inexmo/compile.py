@@ -143,9 +143,12 @@ def _build_module_impl(
     # if a built module already exists, and matches the hash of the source code, just use it
     try:
         module = importlib.import_module(f"{ext_name}.{module_name}")
+        # TODO verbose mode
+        # print(f"Code: {hashval} existing {module.__checksum__}")
         if module.__checksum__ == hashval:
             return
     except ImportError:
+        # print("Could not import {} to compare hashes, rebuilding...")
         pass
 
     # save the code with the hash embedded

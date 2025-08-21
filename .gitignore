@@ -13,3 +13,7 @@ wheels/
 .venv
 
 ext/
+
+*.o
+*.a
+*.so
