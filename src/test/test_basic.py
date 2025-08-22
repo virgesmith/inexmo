@@ -54,7 +54,9 @@ def test_parse_macros() -> None:
 
 @compile()
 def max(i: int, j: int) -> int:  # type: ignore[empty-body]
+    # comments can be added before...
     "return i > j ? i : j;"
+    # ...and after the docstr
 
 
 def test_basic() -> None:

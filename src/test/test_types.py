@@ -1,7 +1,9 @@
 from typing import Annotated
 
 import numpy.typing as npt
+import pytest
 
+from inexmo import compile
 from inexmo.compile import _deduplicate
 from inexmo.types import CppQualifier, header_requirements, parse_annotation, translate_type
 
@@ -86,3 +88,26 @@ def test_overridden_annotated_types() -> None:
 
     cpptype = translate_type(Annotated[list[int], "py::list"])  # type: ignore[arg-type]
     assert str(cpptype) == "py::list"
+
+
+@compile(extra_headers=["<functional>"])
+def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:  # type: ignore[empty-body]
+    """
+    // Since this function body is put into an anonymous lambda, it cannot be called recursively.
+    // Workaround: put the recursive implementation into a named lambda that captures its scope and call this
+    // (NB cannot use auto for type deduction in this case)
+
+    std::function<uint64_t(uint64_t)> impl = [&impl](uint64_t n) -> uint64_t {
+        if (n < 2) {
+            return n;
+        }
+        return impl(n - 2) + impl(n - 1);
+    };
+    return impl(n);
+    """
+
+
+def test_unsigned() -> None:
+    assert fibonacci(10) == 55
+    with pytest.raises(TypeError):
+        fibonacci(-10)

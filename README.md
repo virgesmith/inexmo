@@ -34,13 +34,17 @@ box may vary, e.g. on a mac, you may need to manually `brew install libomp` for 
 
 Caveats & points to note:
 
-- Compiled lambdas are not supported but nested functions are, in a limited way - they cannot capture variables from their enclosing scope.
-- Functions with conflicting headers or compiler/linker settings must be implemented in separate files
-- Using auto-vectorisation incurs a major performance penalty if the function is called with scalar arguments
+- Compiled python lambdas are not supported but nested functions are, in a limited way - they cannot capture variables from
+their enclosing scope.
+- Top-level recursion is not supported, since the functions themselves are implemented as anonymous C++ lambdas. For a
+workaround see the Fibonacci example in [test_types.py](src/test/test_types.py)
+- Functions with conflicting headers or compiler/linker settings must be implemented in separate modules
 - Auto-vectorisation naively applies operations to
 [vector inputs in a piecewise manner](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html#vectorizing-functions),
-and although it will broadcast lower-dimensional arguments where possible (e.g. adding a scalar to a vector), it is not suitable for more complex operations (e.g. matrix multiplication)
-- There is currently no way to change the order header files are included in the module source code
+and although it will broadcast lower-dimensional arguments where possible (e.g. adding a scalar to a vector), it is
+not suitable for more complex operations (e.g. matrix multiplication)
+- Using auto-vectorisation incurs a major performance penalty when the function is called with all scalar arguments
+- There is currently no way to change the ordering of header files in the module source code
 - For methods, annotations must be provided for the context: `self: Self` for instance methods, or `cls: type` for class
 methods.
 - IDE syntax highlighting and linting probably won't work correctly for inline C or C++ code.
@@ -121,7 +125,7 @@ Full code is in [examples/loop.py](./examples/loop.py). To run the example scrip
 
 > "vectorisation" in this sense means implementing loops in compiled, rather than interpreted, code. In fact, the C++ implementation below also uses optimisations including "true" vectorisation (meaning hardware SIMD instructions).
 
-For "standard" linear algebra and array operations, implementations in inexmo are very unlikely to improve on heavily
+For "standard" linear algebra and array operations, implementations in *inexmo* are very unlikely to improve on heavily
 optimised numpy implementations such as matrix multiplication.
 
 However, significant performance improvements may be seen for more "bespoke" operations, particularly for
@@ -135,10 +139,10 @@ def calc_dist_matrix_p(p: npt.NDArray) -> npt.NDArray:
     "Compute distance matrix from points, using numpy"
     return np.sqrt(((p[:, np.newaxis, :] - p[np.newaxis, :, :]) ** 2).sum(axis=2))
 ```
-bearing in mind there is some redundancy here as the resulting maxtrix is symmetric; however vectorisation with
+bearing in mind there is some redundancy here as the resulting matrix is symmetric; however vectorisation with
 redundancy will always win the tradeoff against loops with no redundancy.
 
-In C++ this tradeoff does not exist. A reasonably well optimised C++ implementation using `inexmo` is:
+In C++ this tradeoff does not exist. A reasonably well optimised C++ implementation using *inexmo* is:
 
 ```py
 from inexmo import compile
@@ -223,7 +227,9 @@ Thus, `dict[str, list[float]]` becomes `std::unordered_map<std::string, std::vec
 
 ### Qualifiers
 
-In Python function arguments are always passed by "value reference", but C++ allows multiple methods. The default mapping uses by-value, which when objects are shallow-copied, (like numpy arrays) is not unreasonable. To change this behaviour, annotate the function arguments, passing an appropriate instance of `CppQualifier`, e.g.:
+In Python function arguments are always passed by "value reference" (essentially a modifiable reference to an immutable* object), but C++ is more flexible. The default mapping uses by-value, which when objects are shallow-copied, (like numpy arrays) is often sufficient. To change this behaviour, annotate the function arguments, passing an appropriate instance of `CppQualifier`, e.g.:
+
+&ast; unless its a `dict`, `list`, `set` or `bytearray`
 
 ```py
 from typing import Annotated
@@ -247,7 +253,7 @@ Qualifier | C++
 `Auto` | `T` (no modification)
 `Ref` | `T&`
 `CRef` | `const T&`
-`RRref` | `T&&`
+`RRef` | `T&&`
 `Ptr` | `T*`
 `PtrC` | `T* const`
 `CPtr` | `const T*`
@@ -258,7 +264,7 @@ Qualifier | C++
 
 ### Overriding
 
-In some circumstances, you may want to provide a custom mapping. This is done by passing the required C++ type (as a string) in the annotation:
+In some circumstances, you may want to provide a custom mapping. This is done by passing the required C++ type (as a string) in the annotation. For example, to restrict interger inputs and outputs to nonnegative values, use an unsigned type:
 
 ```py
 from typing import Annotated
@@ -266,7 +272,7 @@ from typing import Annotated
 from inexmo import compile
 
 @compile()
-def do_something(array: Annotated[list[float], "py::list"]) -> int:
+def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:
     ...
 ```
 
@@ -274,7 +280,7 @@ def do_something(array: Annotated[list[float], "py::list"]) -> int:
 
 - [ ] customisable location of modules (default seems to work ok)?
 - [ ] control over header file order
-- [ ] module builds sometimes need 2 runs to trigger
+- [ ] are modules consistently rebuilding (only) when signature/code/compiler setting change?
 
 
 ## See also
