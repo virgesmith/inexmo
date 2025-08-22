@@ -36,7 +36,7 @@ dev = [
 testpaths = [
   "src/test"
 ]
-addopts = "--cov=src/inexmo --cov-report html --cov-fail-under=95 --doctest-modules" #--doctest-glob=README.md"
+addopts = "--cov=src/inexmo --cov-report html --cov-fail-under=99 --doctest-modules" #--doctest-glob=README.md"
 
 [tool.ruff]
 line-length = 120

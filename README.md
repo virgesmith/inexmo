@@ -28,14 +28,16 @@ use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library 
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
 - Supports arguments by value, reference, and (dumb) pointer, with or without `const` qualifiers
 - Maps python types to C++ types with overridable defaults, and automatically includes minimal headers for compilation
+- Compound types are supported, by mapping (by default) to `std::optional` / `std::variant`
 - Custom macros and extra headers/compiler/linker commands can be added as necessary
 - Can link to prebuilt libraries, see [test_external_static.py](src/test/test_external_static.py) and
 [test_external_shared.py](src/test/test_external_shared.py) for details.
 
 Caveats & points to note:
 
+- Keyword args and default values for args are not currently supported
 - Compiled python lambdas are not supported but nested functions are, in a limited way - they cannot capture variables from
-their enclosing scope.
+their enclosing scope
 - Top-level recursion is not supported, since the functions themselves are implemented as anonymous C++ lambdas. For a
 workaround see the Fibonacci example in [test_types.py](src/test/test_types.py)
 - Functions with conflicting headers or compiler/linker settings must be implemented in separate modules
@@ -276,8 +278,13 @@ def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:
     ...
 ```
 
+This is also useful for compound (optional and union) types when you want to access them as a generic python object
+rather than via the default mapping - which uses the `std::optional` and `std::variant` templates.
+
 ## TODO
 
+- [ ] default arguments, kwargs and pos-only/kw-only args?
+- [ ] return value policy
 - [ ] customisable location of modules (default seems to work ok)?
 - [ ] control over header file order
 - [ ] are modules consistently rebuilding (only) when signature/code/compiler setting change?

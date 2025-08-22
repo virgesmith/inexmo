@@ -5,7 +5,7 @@ import pytest
 
 from inexmo import compile
 from inexmo.compile import _deduplicate
-from inexmo.types import CppQualifier, header_requirements, parse_annotation, translate_type
+from inexmo.types import CppQualifier, PyTypeTree, header_requirements, parse_annotation, translate_type
 
 
 def test_basic_types() -> None:
@@ -29,6 +29,52 @@ def test_basic_types() -> None:
     # cpptype = translate_type(bytes)
     # assert str(cpptype) == "std::vector<const unsigned char>"
     # assert cpptype.headers(header_requirements) == {"<vector>"}
+
+
+def test_pytypetree_basic_types() -> None:
+    tree = PyTypeTree(int)
+    assert tree.type is int
+    assert tree.subtypes == ()
+    assert repr(tree) == "int"
+
+    tree = PyTypeTree(float)
+    assert tree.type is float
+    assert tree.subtypes == ()
+    assert repr(tree) == "float"
+
+    tree = PyTypeTree(str)
+    assert tree.type is str
+    assert tree.subtypes == ()
+    assert repr(tree) == "str"
+
+
+def test_pytypetree_generic_types() -> None:
+    tree = PyTypeTree(list[int])
+    assert tree.type is list
+    assert len(tree.subtypes) == 1
+    assert tree.subtypes[0].type is int
+    assert repr(tree) == "list[int]"
+
+    tree = PyTypeTree(dict[str, float])
+    assert tree.type is dict
+    assert len(tree.subtypes) == 2
+    assert tree.subtypes[0].type is str
+    assert tree.subtypes[1].type is float
+    assert repr(tree) == "dict[str, float]"
+
+
+def test_pytypetree_tuple_and_ellipsis() -> None:
+    tree = PyTypeTree(tuple[int, ...])
+    assert tree.type is tuple
+    assert len(tree.subtypes) == 2
+    assert tree.subtypes[0].type is int
+    assert tree.subtypes[1].type is Ellipsis
+    assert repr(tree.subtypes[1]) == "..."
+
+
+def test_pytypetree_raises_on_annotated() -> None:
+    with pytest.raises(TypeError):
+        PyTypeTree(Annotated[int, "foo"])  # type: ignore[arg-type]
 
 
 def test_specialised_types() -> None:
@@ -72,6 +118,9 @@ def test_parse_annotation() -> None:
     t, q = parse_annotation(Annotated[int, "uint32_t"])  # type: ignore[arg-type]
     assert t is int
     assert q == {"override": "uint32_t"}
+
+    with pytest.raises(TypeError):
+        parse_annotation(Annotated[int, 42])  # type: ignore[arg-type]
 
 
 def test_qualified_annotated_types() -> None:

@@ -1,5 +1,7 @@
 # dummy generic types for references and pointers
+from copy import copy
 from enum import StrEnum
+from types import NoneType, UnionType
 from typing import Annotated, Any, Self, get_args, get_origin
 
 import numpy as np
@@ -20,7 +22,7 @@ class CppQualifier(StrEnum):
 
 
 DEFAULT_TYPE_MAPPING = {
-    None: "void",
+    None: "void",  # py::none?
     int: "int",
     np.int32: "int32_t",
     np.int64: "int64_t",
@@ -31,13 +33,15 @@ DEFAULT_TYPE_MAPPING = {
     str: "std::string",
     np.ndarray: "py::array_t",
     bytes: "py::bytes",
+    bytearray: "py::bytearray",
     list: "std::vector",
     set: "std::unordered_set",
     dict: "std::unordered_map",
-    tuple: "std::tuple",  # does not support ...
+    tuple: "std::tuple",  # ... ellipsis not supported
     Any: "py::object",
     Self: "py::object",
     type: "py::type",
+    UnionType: "std::variant",
 }
 
 header_requirements = {
@@ -47,6 +51,8 @@ header_requirements = {
     "std::unordered_map": "<pybind11/stl.h>",
     "std::tuple": "<pybind11/stl.h>",
     "py::array_t": "<pybind11/numpy.h>",
+    "std::variant": "<pybind11/stl.h>",
+    "std::optional": "<pybind11/stl.h>",
     # TODO and the rest...
 }
 
@@ -57,10 +63,12 @@ class PyTypeTree:
     def __init__(self, type_: type) -> None:
         origin = get_origin(type_)
         if origin is Annotated:
-            raise TypeError("Don't pass annotated types directly to PyTypeTree")
+            raise TypeError("Don't pass annotated types directly to PyTypeTree, use translate_type")
 
         self.type = origin if origin is not None else type_
         self.subtypes = tuple(PyTypeTree(t) for t in get_args(type_))
+
+        # print(self.type, self.subtypes)
 
     def __repr__(self) -> str:
         if self.type == Ellipsis:
@@ -76,20 +84,28 @@ class CppTypeTree:
 
     def __init__(self, tree: PyTypeTree, *, override: str | None = None, qualifier: CppQualifier | None = None) -> None:
         self.type = DEFAULT_TYPE_MAPPING.get(tree.type)  # type: ignore[arg-type]
-        if not self.type:
-            raise CppTypeError(f"Don't know a C++ type for '{tree.type}'")
+        if not self.type and not override:
+            raise CppTypeError(f"Don't know a C++ type for '{tree.type}' and no override provided")
         self.override = override
         self.qualfier = qualifier
         # special treatment for numpy arrays
         if tree.type == np.ndarray:
             self.subtypes: tuple[CppTypeTree, ...] = (CppTypeTree(tree.subtypes[1].subtypes[0]),)
         else:
-            self.subtypes = tuple(CppTypeTree(t) for t in tree.subtypes)
+            self.subtypes = tuple(CppTypeTree(t) for t in tree.subtypes if t.type is not NoneType)
+        # if we have a "T | None" -> std::variant with one fewer type param, make it a std::optional
+        if self.type == "std::variant" and len(self.subtypes) == len(tree.subtypes) - 1:
+            if len(self.subtypes) > 1:
+                # T | U | None -> std::optional<std::variant<T, U>>
+                subtype = copy(self)
+                subtype.override = None
+                subtype.qualfier = None
+                self.subtypes = (subtype,)
+            self.type = "std::optional"
 
     def __repr__(self) -> str:
         if self.override:
             return self.override
-
         t = f"{self.type}"
         if self.subtypes:
             t = t + f"<{', '.join(repr(t) for t in self.subtypes)}>"
@@ -118,6 +134,8 @@ def parse_annotation(origin: type) -> tuple[type, dict[str, CppQualifier] | dict
     Extract content from Annotation, if present
     """
     t = get_origin(origin)
+    # if t is None and get_args(origin):
+    #     raise CppTypeError("Python types with no default mapping must be annotated with a type override")
     if t is Annotated:
         base, *extras = get_args(origin)
         assert len(extras) == 1, "one and only one annotation must be specified"
