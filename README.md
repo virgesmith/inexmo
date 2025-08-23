@@ -26,8 +26,11 @@ are detected.
 "vectorised" operations. You can either implement the function directly, or write a scalar function and make
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
-- Supports arguments by value, reference, and (dumb) pointer, with or without `const` qualifiers
-- Maps python types to C++ types with overridable defaults, and automatically includes minimal headers for compilation
+- Positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`)
+- Using annotated types, you can:
+    - qualify C++ arguments by value, reference, or (dumb) pointer, with or without `const`
+    - override the default mapping of python types to C++ types
+- Automatically includes (minimal) required headers for compilation
 - Compound types are supported, by mapping (by default) to `std::optional` / `std::variant`
 - Custom macros and extra headers/compiler/linker commands can be added as necessary
 - Can link to prebuilt libraries, see [test_external_static.py](src/test/test_external_static.py) and
@@ -283,11 +286,13 @@ rather than via the default mapping - which uses the `std::optional` and `std::v
 
 ## TODO
 
-- [ ] default arguments, kwargs and pos-only/kw-only args?
+- [X] default arguments, kwargs and pos-only/kw-only args?
+- [ ] `*args` and `**kwargs`
 - [ ] return value policy
 - [ ] customisable location of modules (default seems to work ok)?
 - [ ] control over header file order
 - [ ] are modules consistently rebuilding (only) when signature/code/compiler setting change?
+- [ ] function docstr (supplied as help arg to compile)
 
 
 ## See also
