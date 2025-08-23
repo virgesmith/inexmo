@@ -15,7 +15,7 @@ def platform_specific(settings: dict[Platform, list[str]]) -> list[str] | None:
     return settings.get(cast(Platform, platform.system()))
 
 
-def _translate_type(value: Any) -> str:
+def _translate_value(value: Any) -> str:
     translations = {"False": "false", "True": "true"}
     return translations.get(str(value), str(value))
 
@@ -42,13 +42,20 @@ def translate_function_signature(func: Callable[..., Any]) -> tuple[str, list[st
         if var_name == "return":
             ret = str(cpptype)
         else:
-            arg_def = f"{cpptype} {var_name}"
+            if arg_spec.varargs == var_name:
+                arg_def = f"py::args {var_name}"
+            elif arg_spec.varkw == var_name:
+                arg_def = f"const py::kwargs& {var_name}"
+            else:
+                arg_def = f"{cpptype} {var_name}"
             arg_annotation = f'py::arg("{var_name}")'
             if var_name in defaults:
-                arg_def += f"={_translate_type(defaults[var_name])}"
-                arg_annotation += f"={_translate_type(defaults[var_name])}"
+                arg_def += f"={_translate_value(defaults[var_name])}"
+                arg_annotation += f"={_translate_value(defaults[var_name])}"
             arg_defs.append(arg_def)
-            arg_annotations.append(arg_annotation)
+            # dont create an annotation for var(kw)args
+            if arg_spec.varargs != var_name and arg_spec.varkw != var_name:
+                arg_annotations.append(arg_annotation)
     if pos_only:
         arg_annotations.insert(pos_only, "py::pos_only()")
     if kw_only:

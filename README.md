@@ -26,7 +26,8 @@ are detected.
 "vectorised" operations. You can either implement the function directly, or write a scalar function and make
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
-- Positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`)
+- Positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`), `*args`
+and `**kwargs`
 - Using annotated types, you can:
     - qualify C++ arguments by value, reference, or (dumb) pointer, with or without `const`
     - override the default mapping of python types to C++ types
@@ -38,7 +39,6 @@ box may vary, e.g. on a mac, you may need to manually `brew install libomp` for 
 
 Caveats & points to note:
 
-- Keyword args and default values for args are not currently supported
 - Compiled python lambdas are not supported but nested functions are, in a limited way - they cannot capture variables from
 their enclosing scope
 - Top-level recursion is not supported, since the functions themselves are implemented as anonymous C++ lambdas. For a
@@ -287,7 +287,7 @@ rather than via the default mapping - which uses the `std::optional` and `std::v
 ## TODO
 
 - [X] default arguments, kwargs and pos-only/kw-only args?
-- [ ] `*args` and `**kwargs`
+- [X] `*args` and `**kwargs`
 - [ ] return value policy
 - [ ] customisable location of modules (default seems to work ok)?
 - [ ] control over header file order
