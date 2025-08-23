@@ -15,21 +15,21 @@ def vector_sum_using_py(v: Annotated[list[int], "py::list"]) -> int:  # type: ig
     """
 
 
-@compile(extra_headers=["<numeric>"])
+@compile(extra_includes=["<numeric>"])
 def vector_sum_using_cptrc(v: Annotated[list[int], CppQualifier.CPtrC]) -> int:  # type: ignore[empty-body]
     """
     return std::accumulate(v->begin(), v->end(), 0);
     """
 
 
-@compile(extra_headers=["<numeric>"])
+@compile(extra_includes=["<numeric>"])
 def vector_sum_using_cref(v: Annotated[list[int], CppQualifier.CRef]) -> int:  # type: ignore[empty-body]
     """
     return std::accumulate(v.begin(), v.end(), 0);
     """
 
 
-@compile(extra_headers=["<numeric>"])
+@compile(extra_includes=["<numeric>"])
 def vector_sum_using_rref(v: Annotated[list[int], CppQualifier.RRef]) -> int:  # type: ignore[empty-body]
     """
     return std::accumulate(v.begin(), v.end(), 0);

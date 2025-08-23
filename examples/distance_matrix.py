@@ -6,13 +6,13 @@ import numpy.typing as npt
 from inexmo import compile
 
 
-def calc_dist_matrix_p(p: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+def calc_dist_matrix_py(p: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     "Compute distance matrix from points, using numpy"
     return np.sqrt(((p[:, np.newaxis, :] - p[np.newaxis, :, :]) ** 2).sum(axis=2))  # type: ignore[no-any-return]
 
 
 @compile(extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
-def calc_dist_matrix_c(points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:  # type: ignore[empty-body]
+def calc_dist_matrix_cpp(points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:  # type: ignore[empty-body]
     """
     py::buffer_info buf = points.request();
     if (buf.ndim != 2)
@@ -53,11 +53,11 @@ if __name__ == "__main__":
         p = np.random.uniform(size=(size, 3))
 
         start = time.process_time()
-        dist_p = calc_dist_matrix_p(p)
+        dist_p = calc_dist_matrix_py(p)
         elapsed_p = time.process_time() - start
 
         start = time.process_time()
-        dist_c = calc_dist_matrix_c(p)
+        dist_c = calc_dist_matrix_cpp(p)
         elapsed_c = time.process_time() - start
 
         assert np.abs(dist_c - dist_p).max() < 1e-15

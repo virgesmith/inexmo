@@ -11,7 +11,7 @@ if not platform.system() == "Linux":
 
 # test can link to local shared library
 @compile(
-    extra_headers=[
+    extra_includes=[
         '"test_lib.h"',
     ],
     extra_compile_args=["-I../../src/test"],

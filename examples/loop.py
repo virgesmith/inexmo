@@ -1,5 +1,5 @@
 from time import process_time
-from typing import Any
+from typing import Annotated
 
 import numpy as np
 import pandas as pd
@@ -7,8 +7,8 @@ import pandas as pd
 from inexmo import compile
 
 
-@compile(extra_headers=["<pybind11/numpy.h>"])
-def calc_balances_cpp(data: Any, rate: float) -> Any:
+@compile(extra_includes=["<pybind11/numpy.h>"])
+def calc_balances_cpp(data: Annotated[pd.Series, "py::object"], rate: float) -> Annotated[pd.Series, "py::object"]:  # type: ignore[empty-body]
     """
     auto pd = py::module::import("pandas");
     auto result = pd.attr("Series")(py::arg("index") = data.attr("index"));

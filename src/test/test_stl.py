@@ -1,7 +1,7 @@
 from inexmo import compile
 
 
-@compile(extra_headers=["<numeric>"])
+@compile(extra_includes=["<numeric>"])
 def vector_sum(v: list[int]) -> int:  # type: ignore[empty-body]
     """
     return std::accumulate(v.begin(), v.end(), 0);
@@ -13,7 +13,7 @@ def test_vector() -> None:
     assert vector_sum(range(5)) == 10
 
 
-@compile(extra_headers=["<numeric>"])
+@compile(extra_includes=["<numeric>"])
 def set_sum(s: set[int]) -> int:  # type: ignore[empty-body]
     """
     return std::accumulate(s.begin(), s.end(), 0);
@@ -24,7 +24,7 @@ def test_set() -> None:
     assert set_sum({1, 2, 3, 4}) == 10
 
 
-@compile(extra_headers=["<numeric>"])
+@compile(extra_includes=["<numeric>"])
 def map_sum(d: dict[int, int]) -> int:  # type: ignore[empty-body]
     """
     return std::accumulate(d.begin(), d.end(), 0, [](int value, std::pair<int,int> p) { return value + p.second; });

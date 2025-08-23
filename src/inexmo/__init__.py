@@ -5,6 +5,7 @@ __version__ = importlib.metadata.version("inexmo")
 
 from .compile import compile
 from .errors import CompilationError, CppTypeError
+from .types import CppQualifier
 from .utils import (
     Platform,
     platform_specific,
@@ -13,6 +14,7 @@ from .utils import (
 __all__ = [
     "__version__",
     "CompilationError",
+    "CppQualifier",
     "CppTypeError",
     "Platform",
     "compile",

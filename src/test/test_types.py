@@ -4,8 +4,8 @@ import numpy.typing as npt
 import pytest
 
 from inexmo import compile
-from inexmo.compile import _deduplicate
 from inexmo.types import CppQualifier, PyTypeTree, header_requirements, parse_annotation, translate_type
+from inexmo.utils import _deduplicate
 
 
 def test_basic_types() -> None:
@@ -139,7 +139,7 @@ def test_overridden_annotated_types() -> None:
     assert str(cpptype) == "py::list"
 
 
-@compile(extra_headers=["<functional>"])
+@compile(extra_includes=["<functional>"])
 def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:  # type: ignore[empty-body]
     """
     // Since this function body is put into an anonymous lambda, it cannot be called recursively.

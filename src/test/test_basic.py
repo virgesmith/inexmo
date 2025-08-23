@@ -4,7 +4,8 @@ from typing import Annotated
 import pytest
 
 from inexmo import CompilationError, CppTypeError, Platform, platform_specific
-from inexmo.compile import FunctionSpec, ModuleSpec, _build_module_impl, _parse_macros, compile
+from inexmo.compile import _build_module_impl, _parse_macros, compile
+from inexmo.cppmodule import FunctionSpec, ModuleSpec
 from inexmo.types import CppQualifier
 from inexmo.utils import translate_function_signature
 
@@ -13,22 +14,34 @@ def test_signature_translation() -> None:
     def f(_i: int) -> None:
         ""
 
-    assert translate_function_signature(f) == ("[](int _i) -> void", [])
+    assert translate_function_signature(f) == ("[](int _i) -> void", ['py::arg("_i")'], [])
 
     def f2(a: float, b: str, c: bool) -> int:  # type: ignore[empty-body]
         ""
 
-    assert translate_function_signature(f2) == ("[](double a, std::string b, bool c) -> int", ["<string>"])
+    assert translate_function_signature(f2) == (
+        "[](double a, std::string b, bool c) -> int",
+        ['py::arg("a")', 'py::arg("b")', 'py::arg("c")'],
+        ["<string>"],
+    )
 
     def f3(a: float, b: Annotated[str, CppQualifier.CRef], c: bool) -> int:  # type: ignore[empty-body]
         ""
 
-    assert translate_function_signature(f3) == ("[](double a, const std::string& b, bool c) -> int", ["<string>"])
+    assert translate_function_signature(f3) == (
+        "[](double a, const std::string& b, bool c) -> int",
+        ['py::arg("a")', 'py::arg("b")', 'py::arg("c")'],
+        ["<string>"],
+    )
 
     def f4(a: float, b: Annotated[str, "const char*"], c: bool) -> int:  # type: ignore[empty-body]
         ""
 
-    assert translate_function_signature(f4) == ("[](double a, const char* b, bool c) -> int", [])
+    assert translate_function_signature(f4) == (
+        "[](double a, const char* b, bool c) -> int",
+        ['py::arg("a")', 'py::arg("b")', 'py::arg("c")'],
+        [],
+    )
 
 
 def test_platform_specific() -> None:
@@ -79,7 +92,7 @@ def test_ref() -> None:
 @compile()
 def string(s: str) -> int:  # type: ignore[empty-body]
     """
-    return s.size();
+    return static_cast<int>(s.size());
     """
 
 
@@ -87,7 +100,7 @@ def test_header_required() -> None:
     assert string("string") == 6
 
 
-@compile(extra_headers=["<pybind11/stl.h>"], define_macros=["PYBIND11_DETAILED_ERROR_MESSAGES"])
+@compile(extra_includes=["<pybind11/stl.h>"], define_macros=["PYBIND11_DETAILED_ERROR_MESSAGES"])
 def vec(size: int) -> list[int]:  # type: ignore[empty-body]
     """
     return std::vector<int>(size);
@@ -124,6 +137,6 @@ def test_compile_error() -> None:
     f = """{
 #error
 }"""
-    spec = ModuleSpec().add_function(FunctionSpec(name="error", body=f, scope=tuple()))
+    spec = ModuleSpec().add_function(FunctionSpec(name="error", body=f, arg_annotations="", scope=tuple()))
     with pytest.raises(CompilationError):
         _build_module_impl("broken_module", spec)

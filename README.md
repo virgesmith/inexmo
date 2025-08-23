@@ -20,22 +20,27 @@ function is replaced with the C++ implementation in the module.
 Modules are only rebuilt when changes to the any of the functions in the module (or decorator parameters)
 are detected.
 
+The binaries, source code and build logs for the compiled modules can be found in the `ext` folder.
+
 ## Features
 
 - Supports [`numpy` arrays](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html) for customised
 "vectorised" operations. You can either implement the function directly, or write a scalar function and make
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
-- Supports arguments by value, reference, and (dumb) pointer, with or without `const` qualifiers
-- Maps python types to C++ types with overridable defaults, and automatically includes minimal headers for compilation
+- Supports positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`), `*args`
+and `**kwargs`
+- Using annotated types, you can:
+    - qualify C++ arguments by value, reference, or (dumb) pointer, with or without `const`
+    - override the default mapping of python types to C++ types
+- Automatically includes (minimal) required headers for compilation
 - Compound types are supported, by mapping (by default) to `std::optional` / `std::variant`
 - Custom macros and extra headers/compiler/linker commands can be added as necessary
-- Can link to prebuilt libraries, see [test_external_static.py](src/test/test_external_static.py) and
+- Can link to separate C++ sources, prebuilt libraries, see [test_external_source.py](src/test/test_external_source.py) [test_external_static.py](src/test/test_external_static.py) and
 [test_external_shared.py](src/test/test_external_shared.py) for details.
 
 Caveats & points to note:
 
-- Keyword args and default values for args are not currently supported
 - Compiled python lambdas are not supported but nested functions are, in a limited way - they cannot capture variables from
 their enclosing scope
 - Top-level recursion is not supported, since the functions themselves are implemented as anonymous C++ lambdas. For a
@@ -46,10 +51,13 @@ workaround see the Fibonacci example in [test_types.py](src/test/test_types.py)
 and although it will broadcast lower-dimensional arguments where possible (e.g. adding a scalar to a vector), it is
 not suitable for more complex operations (e.g. matrix multiplication)
 - Using auto-vectorisation incurs a major performance penalty when the function is called with all scalar arguments
-- There is currently no way to change the ordering of header files in the module source code
-- For methods, annotations must be provided for the context: `self: Self` for instance methods, or `cls: type` for class
-methods.
-- IDE syntax highlighting and linting probably won't work correctly for inline C or C++ code.
+- Header files are ordered in sensible groups (inline code, local headers, library headers, system headers) but there
+is currently no way to fine-tune this ordering
+- For methods, type annotations must be provided for the context: `self: Self` for instance methods, or `cls: type` for class methods.
+- IDE syntax highlighting and linting probably won't work correctly for inline C or C++ code. A workaround is to have
+the inline code just call a function in a separate `.cpp` file.
+- Any changes to `#include`-d files won't automatically trigger a rebuild - the module will need to be
+manually deleted
 
 ## Performance
 
@@ -74,23 +82,24 @@ def calc_balances_py(data: pd.Series, rate: float) -> pd.Series:
 ```
 
 In C++ we can take essentially the same approach. Although there is no direct C++ API for pandas types, since
-`pd.Series` and `pd.DataFrame` are implemented in terms of numpy arrays, we can use the python API to construct
-and extract the underlying arrays, taking advantage of the shallow-copy semantics. Series are passed as `Any`
-(translates to `py::object`) and so we need to explicitly add pybind11's numpy header:
+`pd.Series` and `pd.DataFrame` are implemented in terms of numpy arrays, I this example we use the python object API
+to construct and extract the underlying arrays, taking advantage of the shallow-copy semantics. A C++ type override
+(`py::object`) is required as there is no direct C++ equivalent of `pd.Series`, so we need to explicitly add pybind11's
+numpy header:
 
 ```py
+from typing import Annotated
+
 from inexmo import compile
 
 @compile(extra_headers=["<pybind11/numpy.h>"])
-def calc_balances_cpp(data: Any, rate: float) -> Any:
+def calc_balances_cpp(data: Annotated[pd.Series, "py::object"], rate: float) -> Annotated[pd.Series, "py::object"]:  # type: ignore[empty-body]
     """
 ```
 ```cpp
-    // Import pandas and construct an empty Series
     auto pd = py::module::import("pandas");
     auto result = pd.attr("Series")(py::arg("index") = data.attr("index"));
 
-    // Access the Series via numpy
     auto data_a = data.attr("to_numpy")().cast<py::array_t<int64_t>>();
     auto result_a = result.attr("to_numpy")().cast<py::array_t<double>>();
 
@@ -98,7 +107,6 @@ def calc_balances_cpp(data: Any, rate: float) -> Any:
     auto d = data_a.unchecked<1>();
     auto r = result_a.mutable_unchecked<1>();
 
-    // Perform the calculation
     double current_value = 0.0;
     for (py::ssize_t i = 0; i < n; ++i) {
         current_value = (current_value + d(i)) * (1.0 - rate);
@@ -121,7 +129,7 @@ N | py (ms) | cpp (ms) | speedup (%)
 10000000 | 2872.4 | 42.9 | 6601
 
 Full code is in [examples/loop.py](./examples/loop.py). To run the example scripts, install the "examples" extra, e.g.
-`pip install inexmo[examples]`.
+`pip install inexmo[examples]` or `uv sync --extra examples`.
 
 ### `numpy` and vectorised operations
 
@@ -132,12 +140,12 @@ optimised numpy implementations such as matrix multiplication.
 
 However, significant performance improvements may be seen for more "bespoke" operations, particularly for
 larger objects (the pybind11 machinery has a constant overhead).
-
+p
 For example, to compute a distance matrix between $N$ points in $D$ dimensions, an efficient `numpy` implementation
 could be:
 
 ```py
-def calc_dist_matrix_p(p: npt.NDArray) -> npt.NDArray:
+def calc_dist_matrix_py(p: npt.NDArray) -> npt.NDArray:
     "Compute distance matrix from points, using numpy"
     return np.sqrt(((p[:, np.newaxis, :] - p[np.newaxis, :, :]) ** 2).sum(axis=2))
 ```
@@ -150,7 +158,7 @@ In C++ this tradeoff does not exist. A reasonably well optimised C++ implementat
 from inexmo import compile
 
 @compile(extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
-def calc_dist_matrix_c(points: npt.NDArray[np.float64]) -> npt.NDArray[float]:  # type: ignore[empty-body, type-var]
+def calc_dist_matrix_cpp(points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:  # type: ignore[empty-body]
     """
 ```
 ```cpp
@@ -224,8 +232,10 @@ Python | C++
 `Any` | `py::object`
 `Self` | `py::object`
 `type` | `py::type`
+`*args` | `py::args`
+`**kwargs` | `const py::kwargs&`
 
-Thus, `dict[str, list[float]]` becomes `std::unordered_map<std::string, std::vector<double>>`
+Thus, `dict[str, list[float]]` becomes - by default -  `std::unordered_map<std::string, std::vector<double>>`
 
 ### Qualifiers
 
@@ -278,16 +288,27 @@ def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:
     ...
 ```
 
-This is also useful for compound (optional and union) types when you want to access them as a generic python object
+Other use cases for overriding:
+- for types that are not known to pybind11 or C++ but you want to make the function's intent clear: e.g.
+`Annotated[pd.Series, "py::object"]` (rather than the uninformative `Any`)
+- for compound (optional and union) types when you want to access them as a generic python object
 rather than via the default mapping - which uses the `std::optional` and `std::variant` templates.
+
+## Troubleshooting
+
+The generated module source code is written to `module.cpp`. Compiler output is redirected to `build.log` in the same
+folder. NB build logs are not produced when running via pytest, due to they way it captures output streams.
 
 ## TODO
 
-- [ ] default arguments, kwargs and pos-only/kw-only args?
+- [X] default arguments, kwargs and pos-only/kw-only args?
+- [X] `*args` and `**kwargs`
 - [ ] return value policy
 - [ ] customisable location of modules (default seems to work ok)?
-- [ ] control over header file order
-- [ ] are modules consistently rebuilding (only) when signature/code/compiler setting change?
+- [ ] better control over header file order?
+- [ ] are modules consistently rebuilding/reloading (only) when signature/code/compiler setting change?
+- [X] function docstr (supplied as help arg to compile)
+- [ ] come up with a better name!
 
 
 ## See also
