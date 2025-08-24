@@ -124,7 +124,7 @@ N | py (ms) | cpp (ms) | speedup (%)
 10000000 | 2872.4 | 42.9 | 6601
 
 Full code is in [examples/loop.py](./examples/loop.py). To run the example scripts, install the "examples" extra, e.g.
-`pip install inexmo[examples]`.
+`pip install inexmo[examples]` or `uv sync --extra examples`.
 
 ### `numpy` and vectorised operations
 
@@ -291,8 +291,9 @@ rather than via the default mapping - which uses the `std::optional` and `std::v
 - [ ] return value policy
 - [ ] customisable location of modules (default seems to work ok)?
 - [ ] control over header file order
-- [ ] are modules consistently rebuilding (only) when signature/code/compiler setting change?
-- [ ] function docstr (supplied as help arg to compile)
+- [ ] are modules consistently rebuilding/reloading (only) when signature/code/compiler setting change?
+- [X] function docstr (supplied as help arg to compile)
+- [ ] come up with a better name!
 
 
 ## See also
