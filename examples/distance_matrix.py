@@ -1,3 +1,5 @@
+"""Example of custom vectorised function performance - python vs inline C++"""
+
 import time
 
 import numpy as np

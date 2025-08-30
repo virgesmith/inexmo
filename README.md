@@ -58,6 +58,7 @@ is currently no way to fine-tune this ordering
 the inline code just call a function in a separate `.cpp` file.
 - Any changes to `#include`-d files won't automatically trigger a rebuild - the module will need to be
 manually deleted
+- Inline C++ code will break some pydocstyle linting rules, so will need to be disabled
 
 ## Performance
 

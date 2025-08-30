@@ -1,3 +1,5 @@
+"""Example of unvectorisable function performance - python vs inline C++"""
+
 from time import process_time
 from typing import Annotated
 
@@ -42,7 +44,6 @@ def calc_balances_py(data: pd.Series, rate: float) -> pd.Series:
 
 def main() -> None:
     """Run a performance comparison for varying series lengths"""
-
     rng = np.random.default_rng(19937)
     rate = 0.001
 
