@@ -14,7 +14,7 @@ if not platform.system() == "Linux":
     extra_includes=[
         '"test_lib.h"',
     ],
-    extra_compile_args=["-I../../src/test"],
+    extra_include_paths=["../../src/test"],
     extra_link_args=["-L../../src/test", "-lshared", "-Wl,-rpath=src/test"],
 )
 def lucas(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:  # type: ignore[empty-body]

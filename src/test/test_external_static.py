@@ -10,7 +10,7 @@ if not platform.system() == "Linux":
 
 
 # test can call a function defined in a header
-@compile(extra_includes=['"test_lib.h"'], extra_compile_args=["-I../../src/test"])
+@compile(extra_includes=['"test_lib.h"'], extra_compile_args=["../../src/test"])
 def fibonacci10() -> int:  # type: ignore[empty-body]
     """
     return fibonacci_template<10>();
@@ -26,7 +26,7 @@ def test_local_header() -> None:
     extra_includes=[
         '"test_lib.h"',
     ],
-    extra_compile_args=["-I../../src/test"],
+    extra_include_paths=["../../src/test"],
     extra_link_args=["-L../../src/test", "-lstatic"],
 )
 def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:  # type: ignore[empty-body]

@@ -9,28 +9,6 @@ import pandas as pd
 from inexmo import compile
 
 
-@compile(extra_includes=["<pybind11/numpy.h>"])
-def calc_balances_cpp(data: Annotated[pd.Series, "py::object"], rate: float) -> Annotated[pd.Series, "py::object"]:  # type: ignore[empty-body]
-    """
-    auto pd = py::module::import("pandas");
-    auto result = pd.attr("Series")(py::arg("index") = data.attr("index"));
-
-    auto data_a = data.attr("to_numpy")().cast<py::array_t<int64_t>>();
-    auto result_a = result.attr("to_numpy")().cast<py::array_t<double>>();
-
-    auto n = data_a.request().shape[0];
-    auto d = data_a.unchecked<1>();
-    auto r = result_a.mutable_unchecked<1>();
-
-    double current_value = 0.0;
-    for (py::ssize_t i = 0; i < n; ++i) {
-        current_value = (current_value + d(i)) * (1.0 - rate);
-        r(i) = current_value;
-    }
-    return result;
-    """
-
-
 def calc_balances_py(data: pd.Series, rate: float) -> pd.Series:
     """Cannot vectorise, since each value is dependent on the previous value"""
     result = pd.Series(index=data.index)
@@ -40,6 +18,32 @@ def calc_balances_py(data: pd.Series, rate: float) -> pd.Series:
         current_value = (current_value + value) * (1 - rate)
         result_a[i] = current_value  # type: ignore[call-overload]
     return result
+
+
+@compile(extra_includes=["<pybind11/numpy.h>"])
+def calc_balances_cpp(data: Annotated[pd.Series, "py::object"], rate: float) -> Annotated[pd.Series, "py::object"]:  # type: ignore[empty-body]
+    """
+    // Import pandas
+    auto pd = py::module::import("pandas");
+    // Construct an empty pd.Series with the same index as the input
+    auto result = pd.attr("Series")(py::arg("index") = data.attr("index"));
+
+    // Access the values via numpy/py::array_t
+    auto data_a = data.attr("to_numpy")().cast<py::array_t<int64_t>>();
+    auto result_a = result.attr("to_numpy")().cast<py::array_t<double>>();
+
+    auto n = data_a.request().shape[0];
+    auto d = data_a.unchecked<1>();
+    auto r = result_a.mutable_unchecked<1>();
+
+    // Do the calculation
+    double current_value = 0.0;
+    for (py::ssize_t i = 0; i < n; ++i) {
+        current_value = (current_value + d(i)) * (1.0 - rate);
+        r(i) = current_value;
+    }
+    return result;
+    """
 
 
 def main() -> None:
@@ -57,10 +61,8 @@ def main() -> None:
         py_time = process_time() - start
 
         start = process_time()
-        # Although we can actually construct a pd.Series in C++, it is simpler to create it in python
-        # and pass it to be interpreted as a numpy array. For fairness, this allocation is included in the C++ time
-        # cpp_result = pd.Series(index=data.index)
-        # calc_balances_cpp(data, rate, cpp_result)
+        # Although pybind11/C++ doesn't understand the type pd.Series, it can use the py::object API to manipulate
+        # and create instances of this type
         cpp_result = calc_balances_cpp(data, rate)
         cpp_time = process_time() - start
 

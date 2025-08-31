@@ -58,7 +58,24 @@ is currently no way to fine-tune this ordering
 the inline code just call a function in a separate `.cpp` file.
 - Any changes to `#include`-d files won't automatically trigger a rebuild - the module will need to be
 manually deleted
-- Inline C++ code will break some pydocstyle linting rules, so will need to be disabled
+- Inline C++ code will break some pydocstyle linting rules, so they will need to be disabled. Likewise `type: ignore[empty-body]` may be required to silence mypy.
+
+## Usage
+
+Decorate your C++ functions with `compile` decorator factory - it handles all the configuration and compilation. It can be customised thus:
+
+kwarg | type(=default) | description
+------|----------------|------------
+`vectorise` | `bool=False` | If True, vectorizes the compiled function for array operations.
+`define_macros` | `list[str] \| None = None` | `-D` definitions
+`extra_includes` | `list[str] \| None = None` | Additional header/inline files to include during compilation.
+`extra_include_paths` | `list[str] \| None = None` | Additional paths search for headers.
+`extra_compile_args` | `list[str] \| None = None` | Extra arguments to pass to the compiler.
+`extra_link_args` | `list[str] \| None = None` | Extra arguments to pass to the linker.
+`cxx_std` | `int=20` | C++ standard to compile against
+`help` | `str \| None = None` | Docstring for the function
+`debug` | `bool=False` | enable debug logging
+
 
 ## Performance
 
@@ -297,13 +314,29 @@ rather than via the default mapping - which uses the `std::optional` and `std::v
 
 ## Troubleshooting
 
-The generated module source code is written to `module.cpp`. Compiler output is redirected to `build.log` in the same
-folder. NB build logs are not produced when running via pytest, due to they way it captures output streams.
+The generated module source code is written to `module.cpp`. Compiler commands are redirected to `build.log` in the same
+folder. NB: build errors refuse to be redirected to a file, and `build.log` is not produced when running via pytest,
+due to they way it captures output streams.
+
+Adding `debug=True` to the `compile(...)` decorator logs the steps taken, with timings e.g.:
+
+```txt
+$ python perf.py
+    0.000235 registering perf.array_max
+    0.000345 registering perf.array_max_autovec
+    0.146207 module perf_ext.perf already exists
+    0.146232 module is up-to-date (50400972f7871ebe56c5f714a77927e9ce71bc2409840275742c6544c3dd7e91)
+    0.146238 importing compiled module perf
+    0.146245 retrieved compiled function perf._array_max
+    0.181147 retrieved compiled function perf._array_max_autovec
+...
+```
 
 ## TODO
 
 - [X] default arguments, kwargs and pos-only/kw-only args?
 - [X] `*args` and `**kwargs`
+- [X] overridable `-std=cxx20`
 - [ ] return value policy
 - [ ] customisable location of modules (default seems to work ok)?
 - [ ] better control over header file order?

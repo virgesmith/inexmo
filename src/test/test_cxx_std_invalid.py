@@ -1,0 +1,17 @@
+import pytest
+
+from inexmo import CompilationError, compile
+
+
+def test_cxx_std_invalid() -> None:
+    with pytest.raises(CompilationError):
+
+        @compile(cxx_std=24)
+        def f(i: int) -> bool:  # type: ignore[empty-body]
+            "return i % 2;"
+
+        f(3)
+
+
+if __name__ == "__main__":
+    test_cxx_std_invalid()

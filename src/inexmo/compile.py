@@ -3,7 +3,7 @@ import inspect
 import os
 import sys
 from collections import defaultdict
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import redirect_stdout
 from functools import cache, lru_cache, wraps
 from pathlib import Path
 from typing import Any, Callable
@@ -72,8 +72,8 @@ def _build_module_impl(
             define_macros=list(_parse_macros(_deduplicate(module_spec.define_macros)).items()),
             extra_compile_args=_deduplicate(module_spec.extra_compile_args),
             extra_link_args=_deduplicate(module_spec.extra_link_args),
-            include_dirs=[np.get_include()],
-            cxx_std=20,
+            include_dirs=[np.get_include(), *_deduplicate(module_spec.include_paths)],
+            cxx_std=module_spec.cxx_std,
         )
     ]
 
@@ -81,9 +81,10 @@ def _build_module_impl(
     cwd = Path.cwd()
     try:
         os.chdir(module_dir)
-        # Redirect stdout/stderr to a log file (does not work in pytest)
+        # Redirect stdout to a log file (does not work in pytest)
+        # Redirecting stderr doesnt work at all
         with open("build.log", "w") as fd:
-            with redirect_stdout(fd), redirect_stderr(fd):
+            with redirect_stdout(fd):  # , redirect_stderr(fd):
                 setup(
                     name=ext_name,
                     ext_modules=ext_modules,
@@ -117,8 +118,10 @@ def compile(
     vectorise: bool = False,
     define_macros: list[str] | None = None,
     extra_includes: list[str] | None = None,
+    extra_include_paths: list[str] | None = None,
     extra_compile_args: list[str] | None = None,
     extra_link_args: list[str] | None = None,
+    cxx_std: int = 20,
     help: str | None = None,
     debug: bool = False,
 ) -> Callable[..., Callable[..., Any]]:
@@ -127,9 +130,12 @@ def compile(
 
     Parameters:
         vectorise (bool, optional): If True, vectorizes the compiled function for array operations.
-        extra_headers (list[str], optional): Additional header files to include during compilation.
+        define_macros: list[str] | None = None,
+        extra_includes (list[str], optional): Additional header/inline files to include during compilation.
+        extra_include_paths (list[str], optional): Additional paths search for headers.
         extra_compile_args (list[str], optional): Extra arguments to pass to the compiler.
         extra_link_args (list[str], optional): Extra arguments to pass to the linker.
+        cxx_std (int, optional, default 20): C++ standard to compile
         help (str, optional): Docstring for the function
         debug (bool, optional, default False): enable debug logging
 
@@ -172,9 +178,11 @@ def compile(
         _module_registry[module_name].add_function(
             function_spec,
             headers=headers + (extra_includes or []),
+            include_paths=extra_include_paths or [],
             define_macros=define_macros or [],
             extra_compile_args=extra_compile_args or [],
             extra_link_args=extra_link_args or [],
+            cxx_std=cxx_std,
         )
 
         @wraps(func)
