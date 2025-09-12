@@ -293,6 +293,16 @@ Qualifier | C++
 (NB pybind11 does not appear to support `std::shared_ptr` or `std::unique_ptr` as function arguments)
 
 
+#### In-place modification
+
+Note that most python types are immutable, so in-place modification of input arguments - even passed by pointer or
+reference - is generally not possible - any mutation triggers a copy. It is worth reading the
+[pybind11 documentation](https://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html) on this topic.
+
+However, it *is* possible to modify mutable types in-place in certain circumstances. Firstly there must be no implicit
+type conversion, and this also applies to contained types. Secondly no C++ type qualifiers are required, since the
+structures are shallow copied.
+
 ### Overriding
 
 In some circumstances, you may want to provide a custom mapping. This is done by passing the required C++ type (as a string) in the annotation. For example, to restrict interger inputs and outputs to nonnegative values, use an unsigned type:

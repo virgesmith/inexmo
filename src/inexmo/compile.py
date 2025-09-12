@@ -1,9 +1,10 @@
 import importlib
 import inspect
 import os
+import subprocess
 import sys
 from collections import defaultdict
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from functools import cache, lru_cache, wraps
 from pathlib import Path
 from typing import Any, Callable
@@ -27,6 +28,17 @@ logger = get_logger()
 _module_registry: dict[str, ModuleSpec] = defaultdict(ModuleSpec)
 
 
+# need to load module in a subprocess to check its up-to-date to avoid polluting sys.modules
+# otherwise if a rebuild is done, the module is already loaded and the changes are not picked up
+# importlib.reload doesn't work here, the old module remains in memory
+def _get_module_checksum(module_name: str) -> str | None:
+    p = subprocess.run(
+        ["python", "-c", f"import ext.{module_name} as m; print(m.__checksum__)"], capture_output=True, text=True
+    )
+    if p.returncode == 0:
+        return p.stdout.strip()
+
+
 def _parse_macros(macro_list: list[str]) -> dict[str, str | None]:
     """Map ["DEF1", "DEF2=3"] to {"DEF1": None, "DEF2": "3"}"""
     return {kv[0]: kv[1] if len(kv) == 2 else None for d in macro_list for kv in [d.split("=", 1)]}
@@ -43,14 +55,16 @@ def _build_module_impl(
 
     code, hashval = module_spec.make_source(module_name)
 
+
     # if a built module already exists, and matches the hash of the source code, just use it
     module = None
     try:
-        module = importlib.import_module(f"{ext_name}.{module_name}")
-        logger(f"module {ext_name}.{module_name} already exists")
+        module_checksum = _get_module_checksum(f"{ext_name}.{module_name}")
+        # module = importlib.import_module(f"{ext_name}.{module_name}")
+        # logger(f"module {ext_name}.{module_name} already exists")
         # TODO verbose mode
         # print(f"Code: {hashval} existing {module.__checksum__}")
-        if module.__checksum__ == hashval:
+        if module_checksum == hashval:
             logger(f"module is up-to-date ({hashval})")
             return
     except ImportError:
@@ -85,7 +99,7 @@ def _build_module_impl(
         # Redirect stdout to a log file (does not work in pytest)
         # Redirecting stderr doesnt work at all
         with open("build.log", "w") as fd:
-            with redirect_stdout(fd):  # , redirect_stderr(fd):
+            with redirect_stdout(fd), redirect_stderr(fd):
                 setup(
                     name=ext_name,
                     ext_modules=ext_modules,
@@ -93,7 +107,7 @@ def _build_module_impl(
                     cmdclass={"build_ext": build_ext},
                 )
     except SystemExit as e:
-        raise CompilationError(str(e) + f". See {cwd}/build.log for more info") from e
+        raise CompilationError(str(e)) from e
     finally:
         os.chdir(cwd)
 
@@ -108,6 +122,9 @@ def _build_module_impl(
 def _get_module(module_name: str) -> object:
     _build_module_impl(module_name, _module_registry[module_name])
     logger(f"importing compiled module {module_name}")
+    # logger(list(Path("ext/test_memory_ext").glob("*")))
+    # logger(_get_module_checksum(f"{module_name}_ext.{module_name}"))
+    # logger(Path("ext/test_memory_ext/test_memory.cpython-313-x86_64-linux-gnu.so").stat().st_mode)
     return importlib.import_module(f"{module_name}_ext.{module_name}")
 
 
