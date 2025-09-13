@@ -59,6 +59,7 @@ the inline code just call a function in a separate `.cpp` file.
 - Any changes to `#include`-d files won't automatically trigger a rebuild - the module will need to be
 manually deleted
 - Inline C++ code will break some pydocstyle linting rules, so they will need to be disabled. Likewise `type: ignore[empty-body]` may be required to silence mypy.
+- To determine when modules needs to be rebuilt, the out-of-date module is loaded to get its checksum. Although the module gets rebuilt, a re-import *does not* load the changes. An exception is thrown in this case.
 
 ## Usage
 
@@ -74,7 +75,7 @@ kwarg | type(=default) | description
 `extra_link_args` | `list[str] \| None = None` | Extra arguments to pass to the linker.
 `cxx_std` | `int=20` | C++ standard to compile against
 `help` | `str \| None = None` | Docstring for the function
-`debug` | `bool=False` | enable debug logging
+`verbose` | `bool=False` | enable debug logging
 
 
 ## Performance
@@ -318,7 +319,7 @@ The generated module source code is written to `module.cpp`. Compiler commands a
 folder. NB: build errors refuse to be redirected to a file, and `build.log` is not produced when running via pytest,
 due to they way it captures output streams.
 
-Adding `debug=True` to the `compile(...)` decorator logs the steps taken, with timings e.g.:
+Adding `verbose=True` to the `compile(...)` decorator logs the steps taken, with timings e.g.:
 
 ```txt
 $ python perf.py

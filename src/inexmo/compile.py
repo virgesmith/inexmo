@@ -44,6 +44,7 @@ def _build_module_impl(
     code, hashval = module_spec.make_source(module_name)
 
     # if a built module already exists, and matches the hash of the source code, just use it
+    module = None
     try:
         module = importlib.import_module(f"{ext_name}.{module_name}")
         logger(f"module {ext_name}.{module_name} already exists")
@@ -97,6 +98,10 @@ def _build_module_impl(
         os.chdir(cwd)
 
     logger(f"built {ext_name}/{module_name}")
+    if module:
+        # logger(f"reloading {ext_name}/{module_name}")
+        # importlib.reload(module)
+        raise ImportError(f"Loaded module {ext_name}/{module_name} is outdated, please restart the process")
 
 
 @cache  # unlimited module cache
@@ -123,7 +128,7 @@ def compile(
     extra_link_args: list[str] | None = None,
     cxx_std: int = 20,
     help: str | None = None,
-    debug: bool = False,
+    verbose: bool = False,
 ) -> Callable[..., Callable[..., Any]]:
     """
     Decorator factory for compiling C/C++ function implementations into extension modules.
@@ -137,13 +142,13 @@ def compile(
         extra_link_args (list[str], optional): Extra arguments to pass to the linker.
         cxx_std (int, optional, default 20): C++ standard to compile
         help (str, optional): Docstring for the function
-        debug (bool, optional, default False): enable debug logging
+        verbose (bool, optional, default False): enable debug logging
 
     Returns:
         Callable[..., Callable[..., Any]]: A function that when called, will return the compiled function.
     """
 
-    if debug:
+    if verbose:
         logger.enable()
     else:
         logger.disable()

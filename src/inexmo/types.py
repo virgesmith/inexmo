@@ -14,7 +14,7 @@ class CppQualifier(StrEnum):
     Ref = "{}&"
     CRef = "const {}&"
     RRef = "{}&&"
-    Ptr = "{}"
+    Ptr = "{}*"
     CPtr = "const {}*"
     PtrC = "{}* const"
     CPtrC = "const {}* const"
