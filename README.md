@@ -59,7 +59,6 @@ the inline code just call a function in a separate `.cpp` file.
 - Any changes to `#include`-d files won't automatically trigger a rebuild - the module will need to be
 manually deleted
 - Inline C++ code will break some pydocstyle linting rules, so they will need to be disabled. Likewise `type: ignore[empty-body]` may be required to silence mypy.
-- To determine when modules needs to be rebuilt, the out-of-date module is loaded to get its checksum. Although the module gets rebuilt, a re-import *does not* load the changes. An exception is thrown in this case.
 
 ## Usage
 
@@ -348,4 +347,5 @@ $ python perf.py
 
 ## See also
 
-[https://pybind11.readthedocs.io/en/stable/](https://pybind11.readthedocs.io/en/stable/)
+[https://pybind11.readthe
+docs.io/en/stable/](https://pybind11.readthedocs.io/en/stable/)

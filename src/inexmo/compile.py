@@ -1,11 +1,13 @@
 import importlib
 import inspect
 import os
+import subprocess
 import sys
 from collections import defaultdict
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from functools import cache, lru_cache, wraps
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Callable
 
 import numpy as np
@@ -20,11 +22,22 @@ from inexmo.utils import _deduplicate, get_function_scope, translate_function_si
 # TODO make this configurable?
 module_root_dir = Path("./ext")
 # ensure the module directory is available to Python
-sys.path.append(str(module_root_dir))
+sys.path.append(".")
 
 logger = get_logger()
 
 _module_registry: dict[str, ModuleSpec] = defaultdict(ModuleSpec)
+
+
+# need to load module in a subprocess to check its up-to-date to avoid polluting sys.modules
+# otherwise if a rebuild is done, the module is already loaded and the changes are not picked up
+# importlib.reload doesn't work here, the old module remains in memory
+def _get_module_checksum(module_name: str) -> str | None:
+    p = subprocess.run(
+        ["python", "-c", f"import {module_name} as m; print(m.__checksum__)"], capture_output=True, text=True
+    )
+    if p.returncode == 0:
+        return p.stdout.strip()
 
 
 def _parse_macros(macro_list: list[str]) -> dict[str, str | None]:
@@ -32,10 +45,10 @@ def _parse_macros(macro_list: list[str]) -> dict[str, str | None]:
     return {kv[0]: kv[1] if len(kv) == 2 else None for d in macro_list for kv in [d.split("=", 1)]}
 
 
-def _build_module_impl(
+def _check_build_fetch_module_impl(
     module_name: str,
     module_spec: ModuleSpec,
-) -> None:
+) -> ModuleType:
     ext_name = module_name + "_ext"
 
     module_dir = module_root_dir / ext_name
@@ -44,71 +57,68 @@ def _build_module_impl(
     code, hashval = module_spec.make_source(module_name)
 
     # if a built module already exists, and matches the hash of the source code, just use it
-    module = None
-    try:
-        module = importlib.import_module(f"{ext_name}.{module_name}")
-        logger(f"module {ext_name}.{module_name} already exists")
-        # TODO verbose mode
-        # print(f"Code: {hashval} existing {module.__checksum__}")
-        if module.__checksum__ == hashval:
-            logger(f"module is up-to-date ({hashval})")
-            return
-    except ImportError:
+    module_checksum = _get_module_checksum(f"{module_root_dir}.{ext_name}.{module_name}")
+
+    # assume exists and up-to-date
+    exists, outdated = True, False
+    if not module_checksum:
         logger(f"module {ext_name}.{module_name} not found")
-    else:
+        exists = False
+    elif module_checksum != hashval:
         logger(f"module is outdated ({hashval})")
+        outdated = True
+    else:
+        logger(f"module is up-to-date ({hashval})")
 
-    logger(f"(re)building module {ext_name}.{module_name}")
+    if outdated or not exists:
+        logger(f"(re)building module {module_root_dir}.{ext_name}.{module_name}")
 
-    # save the code with the hash embedded
-    with open(module_dir / "module.cpp", "w") as fd:
-        fd.write(code.replace("__HASH__", str(hashval)))
+        # save the code with the hash embedded
+        with open(module_dir / "module.cpp", "w") as fd:
+            fd.write(code.replace("__HASH__", str(hashval)))
 
-    logger(f"wrote {module_dir}/module.cpp")
+        logger(f"wrote {module_dir}/module.cpp")
 
-    ext_modules = [
-        Pybind11Extension(
-            module_name,
-            ["module.cpp"],
-            define_macros=list(_parse_macros(_deduplicate(module_spec.define_macros)).items()),
-            extra_compile_args=_deduplicate(module_spec.extra_compile_args),
-            extra_link_args=_deduplicate(module_spec.extra_link_args),
-            include_dirs=[np.get_include(), *_deduplicate(module_spec.include_paths)],
-            cxx_std=module_spec.cxx_std,
-        )
-    ]
+        ext_modules = [
+            Pybind11Extension(
+                module_name,
+                ["module.cpp"],
+                define_macros=list(_parse_macros(_deduplicate(module_spec.define_macros)).items()),
+                extra_compile_args=_deduplicate(module_spec.extra_compile_args),
+                extra_link_args=_deduplicate(module_spec.extra_link_args),
+                include_dirs=[np.get_include(), *_deduplicate(module_spec.include_paths)],
+                cxx_std=module_spec.cxx_std,
+            )
+        ]
 
-    logger(f"building {ext_name}/{module_name}...")
-    cwd = Path.cwd()
-    try:
-        os.chdir(module_dir)
-        # Redirect stdout to a log file (does not work in pytest)
-        # Redirecting stderr doesnt work at all
-        with open("build.log", "w") as fd:
-            with redirect_stdout(fd):  # , redirect_stderr(fd):
-                setup(
-                    name=ext_name,
-                    ext_modules=ext_modules,
-                    script_args=["build_ext", "--inplace"],
-                    cmdclass={"build_ext": build_ext},
-                )
-    except SystemExit as e:
-        raise CompilationError(str(e) + f". See {cwd}/build.log for more info") from e
-    finally:
-        os.chdir(cwd)
-
-    logger(f"built {ext_name}/{module_name}")
-    if module:
-        # logger(f"reloading {ext_name}/{module_name}")
-        # importlib.reload(module)
-        raise ImportError(f"Loaded module {ext_name}/{module_name} is outdated, please restart the process")
+        logger(f"building {module_root_dir}.{ext_name}.{module_name}...")
+        cwd = Path.cwd()
+        try:
+            os.chdir(module_dir)
+            # Redirect stdout to a log file (does not work in pytest)
+            # Redirecting stderr doesnt work at all
+            with open("build.log", "w") as fd:
+                with redirect_stdout(fd), redirect_stderr(fd):
+                    setup(
+                        name=ext_name,
+                        ext_modules=ext_modules,
+                        script_args=["build_ext", "--inplace"],
+                        cmdclass={"build_ext": build_ext},
+                    )
+        except SystemExit as e:
+            raise CompilationError(str(e)) from e
+        finally:
+            os.chdir(cwd)
+        importlib.invalidate_caches()  # without this, newly built modules are not found
+        logger(f"built {module_root_dir}.{ext_name}.{module_name}")
+    return importlib.import_module(f"{module_root_dir}.{ext_name}.{module_name}")
 
 
 @cache  # unlimited module cache
 def _get_module(module_name: str) -> object:
-    _build_module_impl(module_name, _module_registry[module_name])
+    module = _check_build_fetch_module_impl(module_name, _module_registry[module_name])
     logger(f"importing compiled module {module_name}")
-    return importlib.import_module(f"{module_name}_ext.{module_name}")
+    return module
 
 
 @lru_cache  # limited function cache

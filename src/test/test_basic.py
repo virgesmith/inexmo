@@ -4,7 +4,7 @@ from typing import Annotated
 import pytest
 
 from inexmo import CompilationError, CppTypeError, Platform, platform_specific
-from inexmo.compile import _build_module_impl, _parse_macros, compile
+from inexmo.compile import _check_build_fetch_module_impl, _parse_macros, compile
 from inexmo.cppmodule import FunctionSpec, ModuleSpec
 from inexmo.types import CppQualifier
 from inexmo.utils import translate_function_signature
@@ -139,4 +139,4 @@ def test_compile_error() -> None:
 }"""
     spec = ModuleSpec().add_function(FunctionSpec(name="error", body=f, arg_annotations="", scope=tuple()))
     with pytest.raises(CompilationError):
-        _build_module_impl("broken_module", spec)
+        _check_build_fetch_module_impl("broken_module", spec)
