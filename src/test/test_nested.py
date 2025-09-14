@@ -17,7 +17,7 @@ def outer(x: float) -> float:
 def test_nested() -> None:
     assert outer(3.1) == 15.5
 
-    from ext.test_nested_ext.test_nested import _outer_inner  # type: ignore[import-not-found]
+    from test_nested_ext.test_nested import _outer_inner  # type: ignore[import-not-found]
 
     assert _outer_inner(2.7, 3) == pytest.approx(8.1)
 

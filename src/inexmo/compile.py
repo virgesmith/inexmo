@@ -11,6 +11,7 @@ from types import ModuleType
 from typing import Any, Callable
 
 import numpy as np
+import toml
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 
@@ -19,10 +20,20 @@ from inexmo.errors import CompilationError
 from inexmo.logger import get_logger
 from inexmo.utils import _deduplicate, get_function_scope, translate_function_signature
 
-# TODO make this configurable?
-module_root_dir = Path("./ext")
+
+def _get_module_root_dir() -> Path:
+    path = Path("./ext")  # default
+    config_file = Path("inexmo.toml")
+    if config_file.exists():
+        config = toml.load(config_file)
+        path = Path(config["extensions"]["module_root_dir"])
+    return path
+
+
+module_root_dir = _get_module_root_dir()
+
 # ensure the module directory is available to Python
-sys.path.append(".")
+sys.path.append(str(module_root_dir))
 
 logger = get_logger()
 
@@ -58,12 +69,12 @@ def _check_build_fetch_module_impl(
     code, hashval = module_spec.make_source(module_name)
 
     # if a built module already exists, and matches the hash of the source code, just use it
-    module_checksum = _get_module_checksum(f"{module_root_dir}.{ext_name}.{module_name}")
+    module_checksum = _get_module_checksum(f"{module_root_dir.name}.{ext_name}.{module_name}")
 
     # assume exists and up-to-date
     exists, outdated = True, False
     if not module_checksum:
-        logger(f"module {ext_name}.{module_name} not found")
+        logger(f"module {module_root_dir.name}.{ext_name}.{module_name} not found")
         exists = False
     elif module_checksum != hashval:
         logger(f"module is outdated ({hashval})")
@@ -72,7 +83,7 @@ def _check_build_fetch_module_impl(
         logger(f"module is up-to-date ({hashval})")
 
     if outdated or not exists:
-        logger(f"(re)building module {module_root_dir}.{ext_name}.{module_name}")
+        logger(f"(re)building module {module_root_dir.name}.{ext_name}.{module_name}")
 
         # save the code with the hash embedded
         with open(module_dir / "module.cpp", "w") as fd:
@@ -92,7 +103,7 @@ def _check_build_fetch_module_impl(
             )
         ]
 
-        logger(f"building {module_root_dir}.{ext_name}.{module_name}...")
+        logger(f"building {module_root_dir.name}.{ext_name}.{module_name}...")
         cwd = Path.cwd()
         try:
             os.chdir(module_dir)
@@ -111,21 +122,21 @@ def _check_build_fetch_module_impl(
         finally:
             os.chdir(cwd)
         importlib.invalidate_caches()  # without this, newly built modules are not found
-        logger(f"built {module_root_dir}.{ext_name}.{module_name}")
-    return importlib.import_module(f"{module_root_dir}.{ext_name}.{module_name}")
+        logger(f"built {module_root_dir.name}.{ext_name}.{module_name}")
+    return importlib.import_module(f"{ext_name}.{module_name}")
 
 
 @cache  # unlimited module cache
-def _get_module(module_name: str) -> object:
+def _get_module(module_name: str) -> ModuleType:
     module = _check_build_fetch_module_impl(module_name, _module_registry[module_name])
-    logger(f"importing compiled module {module_name}")
+    logger(f"imported compiled module {module.__name__}")
     return module
 
 
 @lru_cache  # limited function cache
 def _get_function(module_name: str, function_name: str) -> Any:
     module = _get_module(module_name)
-    logger(f"retrieved compiled function {module_name}.{function_name}")
+    logger(f"redirected {module_name}.{function_name[1:]} to compiled function {module.__name__}.{function_name}")
     return getattr(module, function_name)
 
 
@@ -172,7 +183,7 @@ def compile(
         module_name = f"{Path(inspect.getfile(func)).stem}"  # noqa: F821
         function_body = sig + " {" + (func.__doc__ or "") + "}"
 
-        logger(f"registering {module_name}.{func.__name__}")
+        logger(f"registering {module_name}_ext.{module_name}.{func.__name__} (in {module_root_dir})")
 
         if vectorise:
             function_body = f"py::vectorize({function_body})"

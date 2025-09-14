@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=2.3.2",
     "pybind11>=3.0.0",
     "setuptools>=80.9.0",
+    "toml>=0.10.2",
     "types-setuptools>=80.9.0.20250529",
 ]
 
@@ -31,6 +32,7 @@ dev = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.5",
+    "types-toml>=0.10.8.20240310",
 ]
 
 [tool.pytest.ini_options]

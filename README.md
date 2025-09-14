@@ -2,13 +2,13 @@
 
 Write and execute superfast C or C++ inside your Python code! Here's how...
 
-Write a function or method definition **in python**, add the `compile` decorator and put the C++ implementation in a
+Write a function or method definition **in python**, add the `compile` decorator and put the **C++** implementation in a
 docstr:
 
 ```py
 import inexmo
 
-@inexmo.compile()
+@inexmo.compile(vectorise=True)
 def max(i: int, j: int) -> int:  # type: ignore[empty-body]
   "return i > j ? i : j;"
 ```
@@ -20,7 +20,7 @@ function is replaced with the C++ implementation in the module.
 Modules are only rebuilt when changes to the any of the functions in the module (or decorator parameters)
 are detected.
 
-The binaries, source code and build logs for the compiled modules can be found in the `ext` folder.
+By default, the binaries, source code and build logs for the compiled modules can be found in the `ext` subfolder (this can be changed).
 
 ## Features
 
@@ -225,6 +225,18 @@ N | py (ms) | cpp (ms) | speedup (%)
 
 Full code is in [examples/distance_matrix.py](./examples/distance_matrix.py).
 
+## Configuration
+
+By default, compiled modules are placed in an `ext` subdirectory of your project's root. If this location is unsuitable,
+it can be changed by placing `inexmo.toml` in the project root, containing your preferred path:
+
+```toml
+[extensions]
+module_root_dir = "/tmp/inexmo_ext"
+```
+
+NB avoid using characters in paths (e.g. space, hyphen) that would not be valid in a python module name.
+
 ## Type Translations
 
 ### Default mapping
@@ -257,7 +269,7 @@ Thus, `dict[str, list[float]]` becomes - by default -  `std::unordered_map<std::
 
 ### Qualifiers
 
-In Python function arguments are always passed by "value reference" (essentially a modifiable reference to an immutable* object), but C++ is more flexible. The default mapping uses by-value, which when objects are shallow-copied, (like numpy arrays) is often sufficient. To change this behaviour, annotate the function arguments, passing an appropriate instance of `CppQualifier`, e.g.:
+In Python function arguments are always passed by "value reference" (essentially a reassignable reference to an immutable* object), but C++ is more flexible. The default mapping uses by-value, which when objects are shallow-copied, (like numpy arrays) is often sufficient. To change this behaviour, annotate the function arguments, passing an appropriate instance of `CppQualifier`, e.g.:
 
 &ast; unless its a `dict`, `list`, `set` or `bytearray`
 
@@ -294,7 +306,7 @@ Qualifier | C++
 
 ### Overriding
 
-In some circumstances, you may want to provide a custom mapping. This is done by passing the required C++ type (as a string) in the annotation. For example, to restrict interger inputs and outputs to nonnegative values, use an unsigned type:
+In some circumstances, you may want to provide a custom mapping. This is done by passing the required C++ type (as a string) in the annotation. For example, to restrict integer inputs and outputs to nonnegative values, use an unsigned type:
 
 ```py
 from typing import Annotated
@@ -322,14 +334,13 @@ Adding `verbose=True` to the `compile(...)` decorator logs the steps taken, with
 
 ```txt
 $ python perf.py
-    0.000235 registering perf.array_max
-    0.000345 registering perf.array_max_autovec
-    0.146207 module perf_ext.perf already exists
-    0.146232 module is up-to-date (50400972f7871ebe56c5f714a77927e9ce71bc2409840275742c6544c3dd7e91)
-    0.146238 importing compiled module perf
-    0.146245 retrieved compiled function perf._array_max
-    0.181147 retrieved compiled function perf._array_max_autovec
-...
+    0.000285 registering perf_ext.perf.array_max (in ext)
+    0.000427 registering perf_ext.perf.array_max_autovec (in ext)
+    0.169118 module is up-to-date (e73f2972262ff9b0ae2c5c7a4abde95c035fb85d7b29317becf14ee282b5c79a)
+    0.169668 imported compiled module perf_ext.perf
+    0.169684 redirected perf.array_max to compiled function perf_ext.perf._array_max
+    0.213621 redirected perf.array_max_autovec to compiled function perf_ext.perf._array_max_autovec
+    ...
 ```
 
 ## TODO
@@ -338,14 +349,13 @@ $ python perf.py
 - [X] `*args` and `**kwargs`
 - [X] overridable `-std=cxx20`
 - [ ] return value policy
-- [ ] customisable location of modules (default seems to work ok)?
+- [X] customisable location of modules
 - [ ] better control over header file order?
-- [ ] are modules consistently rebuilding/reloading (only) when signature/code/compiler setting change?
+- [X] are modules consistently rebuilding/reloading (only) when signature/code/compiler setting change?
 - [X] function docstr (supplied as help arg to compile)
 - [ ] come up with a better name!
 
 
 ## See also
 
-[https://pybind11.readthe
-docs.io/en/stable/](https://pybind11.readthedocs.io/en/stable/)
+[https://pybind11.readthedocs.io/en/stable/](https://pybind11.readthedocs.io/en/stable/)
