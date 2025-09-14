@@ -12,7 +12,6 @@ def build_libs() -> None:
     ]
 
     for cmd in cmds:
-        print(cmd)
         p = Popen(cmd, cwd="src/test")
         p.communicate()
         assert p.returncode == 0

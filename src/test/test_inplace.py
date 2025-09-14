@@ -74,10 +74,6 @@ def test_inplace_modification() -> None:
 
     b = bytearray([0, 1, 2, 3])
     modify_bytearray(b)
-    # print([m for m in sys.modules.keys() if "test_memory_ext" in m])
-
-    print(b)
-    # assert b == bytearray([7, 1, 2, 3])
 
 
 if __name__ == "__main__":
