@@ -38,6 +38,7 @@ def _get_module_checksum(module_name: str) -> str | None:
     )
     if p.returncode == 0:
         return p.stdout.strip()
+    return None
 
 
 def _parse_macros(macro_list: list[str]) -> dict[str, str | None]:
