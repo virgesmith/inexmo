@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import StrEnum
 from hashlib import sha256
 from typing import Self
 
@@ -28,17 +29,34 @@ PYBIND11_MODULE({module_name}, m) {{
 """
 
 _function_template = """
-  m.def("{function_name}", {function_body} {help} {arg_defs});
+  m.def("{function_name}", {function_body}, {return_value_policy} {help} {arg_defs});
 
 """
 
 
+class ReturnValuePolicy(StrEnum):
+    """See https://pybind11.readthedocs.io/en/stable/advanced/functions.html#return-value-policies"""
+
+    TakeOwnership = "py::return_value_policy::take_ownership"
+    Copy = "py::return_value_policy::copy"
+    Move = "py::return_value_policy::move"
+    Reference = "py::return_value_policy::reference"
+    ReferenceInternal = "py::return_value_policy::reference_internal"
+    Automatic = "py::return_value_policy::automatic"
+    AutomaticReference = "py::return_value_policy::automatic_reference"
+
+
 @dataclass(frozen=True)
 class FunctionSpec:
+    """
+    Dataclass defining a function
+    """
+
     name: str
     body: str
     arg_annotations: str
     scope: tuple[str, ...]
+    return_value_policy: ReturnValuePolicy
     help: str | None = None
 
     def qualified_cpp_name(self) -> str:
@@ -96,6 +114,7 @@ class ModuleSpec:
                     function_name=f.qualified_cpp_name(),
                     function_body=f.body,
                     arg_defs=f.arg_annotations,
+                    return_value_policy=f.return_value_policy,
                     help=f', R"""({f.help})"""' if f.help else "",
                 )
                 for f in self.functions

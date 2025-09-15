@@ -38,6 +38,7 @@ and `**kwargs`
 - Custom macros and extra headers/compiler/linker commands can be added as necessary
 - Can link to separate C++ sources, prebuilt libraries, see [test_external_source.py](src/test/test_external_source.py) [test_external_static.py](src/test/test_external_static.py) and
 [test_external_shared.py](src/test/test_external_shared.py) for details.
+- Supports pybind11's [return value policies](https://pybind11.readthedocs.io/en/stable/advanced/functions.html#return-value-policies)
 
 Caveats & points to note:
 
@@ -264,6 +265,9 @@ Python | C++
 `type` | `py::type`
 `*args` | `py::args`
 `**kwargs` | `const py::kwargs&`
+`T | None` | `std::optional<T>`
+`T | U` | `std::variant<T, U>`
+
 
 Thus, `dict[str, list[float]]` becomes - by default -  `std::unordered_map<std::string, std::vector<double>>`
 
@@ -348,7 +352,7 @@ $ python perf.py
 - [X] default arguments, kwargs and pos-only/kw-only args?
 - [X] `*args` and `**kwargs`
 - [X] overridable `-std=cxx20`
-- [ ] return value policy
+- [X] return value policy
 - [X] customisable location of modules
 - [ ] better control over header file order?
 - [X] are modules consistently rebuilding/reloading (only) when signature/code/compiler setting change?

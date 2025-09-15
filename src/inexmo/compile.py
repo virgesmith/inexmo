@@ -15,7 +15,7 @@ import toml
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 
-from inexmo.cppmodule import FunctionSpec, ModuleSpec
+from inexmo.cppmodule import FunctionSpec, ModuleSpec, ReturnValuePolicy
 from inexmo.errors import CompilationError
 from inexmo.logger import get_logger
 from inexmo.utils import _deduplicate, get_function_scope, translate_function_signature
@@ -148,6 +148,7 @@ def compile(
     extra_include_paths: list[str] | None = None,
     extra_compile_args: list[str] | None = None,
     extra_link_args: list[str] | None = None,
+    return_value_policy: ReturnValuePolicy = ReturnValuePolicy.Automatic,
     cxx_std: int = 20,
     help: str | None = None,
     verbose: bool = False,
@@ -199,7 +200,12 @@ def compile(
 
         # ...as well as adding the help to the ext module
         function_spec = FunctionSpec(
-            name=func.__name__, body=function_body, arg_annotations=arg_defs, scope=scope, help=help
+            name=func.__name__,
+            body=function_body,
+            arg_annotations=arg_defs,
+            scope=scope,
+            return_value_policy=return_value_policy,
+            help=help,
         )
 
         _module_registry[module_name].add_function(
