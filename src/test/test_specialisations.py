@@ -10,14 +10,14 @@ from inexmo import compile
 @compile()
 def len_bytes(a: bytes) -> Annotated[int, "std::size_t"]:  # type: ignore[empty-body]
     """
-    // clunky...
     py::buffer_info info(py::buffer(a).request());
     return static_cast<std::size_t>(info.size);
     """
 
 
 def test_bytes() -> None:
-    assert len_bytes("9¾".encode()) == 3
+    assert len_bytes("°C".encode()) == 3
+    assert len_bytes(b"abc") == 3
 
 
 @compile()

@@ -53,7 +53,6 @@ header_requirements = {
     "py::array_t": "<pybind11/numpy.h>",
     "std::variant": "<pybind11/stl.h>",
     "std::optional": "<pybind11/stl.h>",
-    # TODO and the rest...
 }
 
 

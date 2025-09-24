@@ -82,7 +82,8 @@ kwarg | type(=default) | description
 `extra_compile_args` | `list[str] \| None = None` | Extra arguments to pass to the compiler.
 `extra_link_args` | `list[str] \| None = None` | Extra arguments to pass to the linker.
 `cxx_std` | `int=20` | C++ standard to compile against
-`help` | `str \| None = None` | Docstring for the function
+`return_value_policy` | `ReturnValuePolicy=ReturnValuePolicy.Automatic` | [Return value policy](https://pybind11.readthedocs.io/en/stable/advanced/functions.html#return-value-policies)
+`help` | `str \| None=None` | Docstring for the function
 `verbose` | `bool=False` | enable debug logging
 
 

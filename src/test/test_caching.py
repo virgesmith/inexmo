@@ -24,7 +24,6 @@ def g() -> str:  # type: ignore[empty-body]
 def test_cacheing(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     mock_logger = MagicMock(spec=Logger)
 
-    print(type(monkeypatch))
     # 2. Monkeypatch the specific logger instance in the 'processor' module
     # The path is 'module_name.variable_name'
     monkeypatch.setattr(compile_module, "logger", mock_logger)

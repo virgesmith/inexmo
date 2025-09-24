@@ -25,10 +25,9 @@ def test_basic_types() -> None:
     assert str(cpptype) == "std::string"
     assert cpptype.headers(header_requirements) == ["<string>"]
 
-    # FIXME
-    # cpptype = translate_type(bytes)
-    # assert str(cpptype) == "std::vector<const unsigned char>"
-    # assert cpptype.headers(header_requirements) == {"<vector>"}
+    cpptype = translate_type(bytes)
+    assert str(cpptype) == "py::bytes"
+    assert not cpptype.headers(header_requirements)
 
 
 def test_pytypetree_basic_types() -> None:

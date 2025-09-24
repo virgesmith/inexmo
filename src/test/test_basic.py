@@ -1,5 +1,5 @@
 import platform
-from typing import Annotated
+from typing import Annotated, Any
 
 import pytest
 
@@ -40,6 +40,15 @@ def test_signature_translation() -> None:
     assert translate_function_signature(f4) == (
         "[](double a, const char* b, bool c) -> int",
         ['py::arg("a")', 'py::arg("b")', 'py::arg("c")'],
+        [],
+    )
+
+    def f5(a: float, *, b: Annotated[str, "const char*"], c: bool, **kwargs: Any) -> int:  # type: ignore[empty-body]
+        ""
+
+    assert translate_function_signature(f5) == (
+        "[](double a, const char* b, bool c, const py::kwargs& kwargs) -> int",
+        ['py::arg("a")', "py::kw_only()", 'py::arg("b")', 'py::arg("c")'],
         [],
     )
 

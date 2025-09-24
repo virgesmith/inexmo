@@ -195,6 +195,10 @@ def compile(
         # need to directly alter the original function's help...
         # for reasons unknown, copying the pybind11 function's docstr to the python stub on first use
         # (in _get_function) doesn't actually work
+        # TODO try this:
+        # > Modifying func.__doc__ directly can be an unexpected side effect for a decorator. While functional, it
+        # > deviates from the common pattern of decorators modifying the returned wrapper function's attributes. If
+        # > help is provided, test_help.py's assertion should also be adjusted to == docstr for exact match.
         if help:
             func.__doc__ = help
 

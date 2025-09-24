@@ -9,7 +9,6 @@ from inexmo import compile
 
 
 @compile()
-# def val_np(vec: Annotated[npt.NDArray[float], CppQualifier.Ref]) -> None:
 def modify_nparray(vec: npt.NDArray[np.float64]) -> None:
     """
     // Important: ensure the dtype matches the C++ type, otherwise an implicit copy will be made
@@ -47,7 +46,6 @@ def modify_set(s: Annotated[set[int], "py::set"]) -> None:
     """
 
 
-# def modify_bytearray(b: Annotated[bytearray, "py::buffer"]) -> None:
 @compile()
 def modify_bytearray(b: bytearray) -> None:
     """
