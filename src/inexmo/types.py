@@ -1,4 +1,5 @@
 # dummy generic types for references and pointers
+from collections.abc import Callable
 from copy import copy
 from enum import StrEnum
 from types import NoneType, UnionType
@@ -19,6 +20,10 @@ class CppQualifier(StrEnum):
     PtrC = "{}* const"
     CPtrC = "const {}* const"
     # NB pybind11 doesnt seem to support shared/unique ptr as a function arg
+
+
+# PythonFunction = Callable
+# CppFunction = Callable
 
 
 DEFAULT_TYPE_MAPPING = {
@@ -42,6 +47,7 @@ DEFAULT_TYPE_MAPPING = {
     Self: "py::object",
     type: "py::type",
     UnionType: "std::variant",
+    Callable: "py::cpp_function",
 }
 
 header_requirements = {

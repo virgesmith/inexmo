@@ -39,6 +39,7 @@ box may vary, e.g. on a mac, you may need to manually `brew install libomp` for 
     - override the default mapping of python types to C++ types
 - Automatically includes (minimal) required headers for compilation, according the function signatures in the module.
 If necessary, headers (and include paths) can be added manually.
+- Callable types are supported both as arguments and return values.... TODO more on this
 - Compound types are supported, by mapping (by default) to `std::optional` / `std::variant`
 - Custom macros and extra headers/compiler/linker commands can be added as necessary
 - Can link to separate C++ sources, prebuilt libraries, see [test_external_source.py](src/test/test_external_source.py) [test_external_static.py](src/test/test_external_static.py) and
@@ -274,11 +275,13 @@ Python | C++
 `type` | `py::type`
 `*args` | `py::args`
 `**kwargs` | `const py::kwargs&`
-`T | None` | `std::optional<T>`
-`T | U` | `std::variant<T, U>`
+`T \| None` | `std::optional<T>`
+`T \| U` | `std::variant<T, U>`
+`Callable` | `py::cpp_function`
 
 
 Thus, `dict[str, list[float]]` becomes - by default -  `std::unordered_map<std::string, std::vector<double>>`
+
 
 ### Qualifiers
 
