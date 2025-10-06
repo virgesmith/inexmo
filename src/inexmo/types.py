@@ -1,5 +1,4 @@
 # dummy generic types for references and pointers
-from collections.abc import Callable
 from copy import copy
 from enum import StrEnum
 from types import NoneType, UnionType
@@ -22,8 +21,19 @@ class CppQualifier(StrEnum):
     # NB pybind11 doesnt seem to support shared/unique ptr as a function arg
 
 
-# PythonFunction = Callable
-# CppFunction = Callable
+class PythonFunction:
+    """
+    Define a type for python functions as arguments.
+    We don't use types.Callable[...] here because pybind11's py::function is not templated
+    """
+
+
+class CppFunction:
+    """
+    Define a type for C++ functions as arguments/return types.
+    We don't use types.Callable[...] here because pybind11's py::cpp_function is not templated
+    HOWEVER: passing a C++ function back from python will require using std::function<...> as an override type
+    """
 
 
 DEFAULT_TYPE_MAPPING = {
@@ -47,7 +57,8 @@ DEFAULT_TYPE_MAPPING = {
     Self: "py::object",
     type: "py::type",
     UnionType: "std::variant",
-    Callable: "py::cpp_function",
+    CppFunction: "py::cpp_function",
+    PythonFunction: "py::function",
 }
 
 header_requirements = {
@@ -59,6 +70,7 @@ header_requirements = {
     "py::array_t": "<pybind11/numpy.h>",
     "std::variant": "<pybind11/stl.h>",
     "std::optional": "<pybind11/stl.h>",
+    "py::cpp_function": "<pybind11/functional.h>",
 }
 
 
@@ -72,8 +84,6 @@ class PyTypeTree:
 
         self.type = origin if origin is not None else type_
         self.subtypes = tuple(PyTypeTree(t) for t in get_args(type_))
-
-        # print(self.type, self.subtypes)
 
     def __repr__(self) -> str:
         if self.type == Ellipsis:
@@ -97,6 +107,7 @@ class CppTypeTree:
         if tree.type == np.ndarray:
             self.subtypes: tuple[CppTypeTree, ...] = (CppTypeTree(tree.subtypes[1].subtypes[0]),)
         else:
+            # this doesnt support Callable[[...], ...]
             self.subtypes = tuple(CppTypeTree(t) for t in tree.subtypes if t.type is not NoneType)
         # if we have a "T | None" -> std::variant with one fewer type param, make it a std::optional
         if self.type == "std::variant" and len(self.subtypes) == len(tree.subtypes) - 1:
