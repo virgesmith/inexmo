@@ -39,7 +39,7 @@ box may vary, e.g. on a mac, you may need to manually `brew install libomp` for 
     - override the default mapping of python types to C++ types
 - Automatically includes (minimal) required headers for compilation, according the function signatures in the module.
 If necessary, headers (and include paths) can be added manually.
-- Callable types are supported both as arguments and return values.... TODO more on this
+- Callable types are supported both as arguments and return values. See [below](#callable-types).
 - Compound types are supported, by mapping (by default) to `std::optional` / `std::variant`
 - Custom macros and extra headers/compiler/linker commands can be added as necessary
 - Can link to separate C++ sources, prebuilt libraries, see [test_external_source.py](src/test/test_external_source.py) [test_external_static.py](src/test/test_external_static.py) and
@@ -339,6 +339,30 @@ Other use cases for overriding:
 `Annotated[pd.Series, "py::object"]` (rather than the uninformative `Any`)
 - for compound (optional and union) types when you want to access them as a generic python object
 rather than via the default mapping - which uses the `std::optional` and `std::variant` templates.
+
+## Callable Types
+
+Passing and returning functions to and from C++ is supported, although support for annotating argument and return types
+is limited. inexmo defines the (non-generic) types `PythonFunction` and `CppFunction` which map respectively pybind11's
+`py::function` and `py::cpp_function` types, which do not intrinsically contain information about the function's
+argument and return types. This means type errors are raised at runtime rather than compile time.
+
+In cases where a C++ function has been returned to python, and is then subsequently passed back to C++, a different
+approach is required, since C++ wants more type information: using `CppFunction` on its own will likely result in type
+resolution errors during compilation.
+
+inexmo's type translation mechanism doesn't (currently) support "type lists" in python function annotations (e.g.
+`Callable[[float, bool], int]`), but we can use a type override in this case, e.g.:
+
+```py
+@compile()
+def function_accepting_cpp_function(f: Annotated[CppFunction, "std::function<int(double, bool)>"], x: float) -> int:  # type: ignore[empty-body]
+    """
+    return f(x, true);
+    """
+```
+
+See the examples in [test_callable.py](src/test/test_callable.py) for more detail.
 
 ## Troubleshooting
 
