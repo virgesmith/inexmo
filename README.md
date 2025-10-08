@@ -340,7 +340,7 @@ Other use cases for overriding:
 - for compound (optional and union) types when you want to access them as a generic python object
 rather than via the default mapping - which uses the `std::optional` and `std::variant` templates.
 
-## Callable Types TODO rewrite
+## Callable Types
 
 Passing and returning functions to and from C++ is supported, and they can be used interchangeably with python functions
 and lambdas. Annotate types using `Callable` e.g.
@@ -355,7 +355,7 @@ def modulo(n: int) -> Callable[[int], int]:  # type: ignore[empty-body]
 
 pybind11's `py::function` and `py::cpp_function` types do not intrinsically contain information about the function's
 argument and return types, and are not used by default, although they can be used as type overrides if
-necessary. Note code may also need to be modified to deal with `py::object` return types.
+necessary, although code may also need to be modified to deal with `py::object` return types.
 
 See the examples in [test_callable.py](src/test/test_callable.py) for more detail.
 
@@ -377,19 +377,6 @@ $ python perf.py
     0.213621 redirected perf.array_max_autovec to compiled function perf_ext.perf._array_max_autovec
     ...
 ```
-
-## TODO
-
-- [X] default arguments, kwargs and pos-only/kw-only args?
-- [X] `*args` and `**kwargs`
-- [X] overridable `-std=cxx20`
-- [X] return value policy
-- [X] customisable location of modules
-- [ ] better control over header file order?
-- [X] are modules consistently rebuilding/reloading (only) when signature/code/compiler setting change?
-- [X] function docstr (supplied as help arg to compile)
-- [ ] come up with a better name!
-
 
 ## See also
 

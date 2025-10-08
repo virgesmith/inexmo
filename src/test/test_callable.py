@@ -81,6 +81,8 @@ def test_modulo() -> None:
     assert g(10) == 3
 
     with pytest.raises(TypeError):
+        modulo("x")
+    with pytest.raises(TypeError):
         f("x")
     with pytest.raises(TypeError):
         f()

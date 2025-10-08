@@ -1,10 +1,11 @@
 from typing import Self
 
 import pytest
-from other_module import Base, ClassA
 
 from inexmo import compile
 from inexmo.utils import get_function_scope
+
+from .other_module import Base, ClassA
 
 
 class ClassB(Base):

@@ -22,21 +22,6 @@ class CppQualifier(StrEnum):
     # NB pybind11 doesnt seem to support shared/unique ptr as a function arg
 
 
-class PythonFunction:
-    """
-    Define a type for python functions as arguments.
-    We don't use types.Callable[...] here because pybind11's py::function is not templated
-    """
-
-
-class CppFunction:
-    """
-    Define a type for C++ functions as arguments/return types.
-    We don't use types.Callable[...] here because pybind11's py::cpp_function is not templated
-    HOWEVER: passing a C++ function back from python will require using std::function<...> as an override type
-    """
-
-
 DEFAULT_TYPE_MAPPING = {
     None: "void",  # py::none?
     int: "int",
