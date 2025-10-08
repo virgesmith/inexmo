@@ -39,6 +39,7 @@ box may vary, e.g. on a mac, you may need to manually `brew install libomp` for 
     - override the default mapping of python types to C++ types
 - Automatically includes (minimal) required headers for compilation, according the function signatures in the module.
 If necessary, headers (and include paths) can be added manually.
+- Callable types are supported both as arguments and return values. See [below](#callable-types).
 - Compound types are supported, by mapping (by default) to `std::optional` / `std::variant`
 - Custom macros and extra headers/compiler/linker commands can be added as necessary
 - Can link to separate C++ sources, prebuilt libraries, see [test_external_source.py](src/test/test_external_source.py) [test_external_static.py](src/test/test_external_static.py) and
@@ -274,11 +275,13 @@ Python | C++
 `type` | `py::type`
 `*args` | `py::args`
 `**kwargs` | `const py::kwargs&`
-`T | None` | `std::optional<T>`
-`T | U` | `std::variant<T, U>`
+`T \| None` | `std::optional<T>`
+`T \| U` | `std::variant<T, U>`
+`Callable` | `std::function`
 
 
 Thus, `dict[str, list[float]]` becomes - by default -  `std::unordered_map<std::string, std::vector<double>>`
+
 
 ### Qualifiers
 
@@ -337,6 +340,25 @@ Other use cases for overriding:
 - for compound (optional and union) types when you want to access them as a generic python object
 rather than via the default mapping - which uses the `std::optional` and `std::variant` templates.
 
+## Callable Types
+
+Passing and returning functions to and from C++ is supported, and they can be used interchangeably with python functions
+and lambdas. Annotate types using `Callable` e.g.
+
+```py
+@compile()
+def modulo(n: int) -> Callable[[int], int]:  # type: ignore[empty-body]
+    """
+    return [n](int i) { return i % n; };
+    """
+```
+
+pybind11's `py::function` and `py::cpp_function` types do not intrinsically contain information about the function's
+argument and return types, and are not used by default, although they can be used as type overrides if
+necessary, although code may also need to be modified to deal with `py::object` return types.
+
+See the examples in [test_callable.py](src/test/test_callable.py) for more detail.
+
 ## Troubleshooting
 
 The generated module source code is written to `module.cpp` in a specific folder (e.g. `ext/my_module_ext`). Compiler
@@ -355,19 +377,6 @@ $ python perf.py
     0.213621 redirected perf.array_max_autovec to compiled function perf_ext.perf._array_max_autovec
     ...
 ```
-
-## TODO
-
-- [X] default arguments, kwargs and pos-only/kw-only args?
-- [X] `*args` and `**kwargs`
-- [X] overridable `-std=cxx20`
-- [X] return value policy
-- [X] customisable location of modules
-- [ ] better control over header file order?
-- [X] are modules consistently rebuilding/reloading (only) when signature/code/compiler setting change?
-- [X] function docstr (supplied as help arg to compile)
-- [ ] come up with a better name!
-
 
 ## See also
 
