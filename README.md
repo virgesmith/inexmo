@@ -277,7 +277,7 @@ Python | C++
 `**kwargs` | `const py::kwargs&`
 `T \| None` | `std::optional<T>`
 `T \| U` | `std::variant<T, U>`
-`Callable` | `py::cpp_function`
+`Callable` | `std::function`
 
 
 Thus, `dict[str, list[float]]` becomes - by default -  `std::unordered_map<std::string, std::vector<double>>`
@@ -342,27 +342,22 @@ rather than via the default mapping - which uses the `std::optional` and `std::v
 
 ## Callable Types TODO rewrite
 
-~~Passing and returning functions to and from C++ is supported, although support for annotating argument and return types
-is limited. inexmo defines the (non-generic) types `PythonFunction` and `CppFunction` which map respectively pybind11's
-`py::function` and `py::cpp_function` types, which do not intrinsically contain information about the function's
-argument and return types. This means type errors are raised at runtime rather than compile time.~~
-
-~~In cases where a C++ function has been returned to python, and is then subsequently passed back to C++, a different
-approach is required, since C++ wants more type information: using `CppFunction` on its own will likely result in type
-resolution errors during compilation.~~
-
-~~inexmo's type translation mechanism doesn't (currently) support "type lists" in python function annotations (e.g.
-`Callable[[float, bool], int]`), but we can use a type override in this case, e.g.:~~
+Passing and returning functions to and from C++ is supported, and they can be used interchangeably with python functions
+and lambdas. Annotate types using `Callable` e.g.
 
 ```py
 @compile()
-def function_accepting_cpp_function(f: Annotated[CppFunction, "std::function<int(double, bool)>"], x: float) -> int:  # type: ignore[empty-body]
+def modulo(n: int) -> Callable[[int], int]:  # type: ignore[empty-body]
     """
-    return f(x, true);
+    return [n](int i) { return i % n; };
     """
 ```
 
-See the examples in [test_callable.py](src/test/test_callable.py) for more detail.~~
+pybind11's `py::function` and `py::cpp_function` types do not intrinsically contain information about the function's
+argument and return types, and are not used by default, although they can be used as type overrides if
+necessary. Note code may also need to be modified to deal with `py::object` return types.
+
+See the examples in [test_callable.py](src/test/test_callable.py) for more detail.
 
 ## Troubleshooting
 

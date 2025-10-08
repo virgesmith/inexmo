@@ -1,32 +1,10 @@
 # can we return a C++ lambda?
 
-from typing import Callable
+from typing import Annotated, Callable
 
 import pytest
 
 from inexmo import compile
-
-# @compile()
-# def function_returning_cppfunction(n: int) -> CppFunction:  # type: ignore[empty-body]
-#     """
-#     auto f = [n](int i) { return i % n; };
-#     return py::cpp_function(f);
-#     """
-
-
-# @compile()
-# def function_accepting_pyfunction(f: PythonFunction, n: int) -> int:  # type: ignore[empty-body]
-#     """
-#     // The cast only ensures f returns an int, pybind11 will cast this back to a py::object
-#     return f(n).cast<int>();
-#     """
-
-
-# @compile()  # extra_includes=["<pybind11/functional.h>"])
-# def function_accepting_cppfunction(f: Annotated[CppFunction, "std::function<int(int)>"], i: int) -> int:  # type: ignore[empty-body]
-#     """
-#     return f(i);
-#     """
 
 
 @compile()
@@ -48,6 +26,14 @@ def modulo(n: int) -> Callable[[int], int]:  # type: ignore[empty-body]
     """
 
 
+@compile()
+def modulo_override(n: int) -> Annotated[Callable[[int], int], "py::cpp_function"]:  # type: ignore[empty-body]
+    """
+    // explicit construction of py::cpp_function is not necessary
+    return py::cpp_function([n](int i) { return i % n; });
+    """
+
+
 def modulo_py(n: int) -> Callable[[int], int]:
     return lambda i: i % n
 
@@ -56,6 +42,14 @@ def modulo_py(n: int) -> Callable[[int], int]:
 def use_modulo(f: Callable[[int], int], i: int) -> int:  # type: ignore[empty-body]
     """
     return f(i);
+    """
+
+
+@compile()
+def use_modulo_override(f: Annotated[Callable[[int], int], "py::function"], i: int) -> int:  # type: ignore[empty-body]
+    """
+    // py::function returns a py::object so cast is required
+    return f(i).cast<int>();
     """
 
 
@@ -76,10 +70,16 @@ def use_round_sign_py(f: Callable[[float, bool], int], x: float) -> int:
 
 def test_modulo() -> None:
     f = modulo(3)
+    g = modulo_override(7)
 
     assert f(0) == 0
     assert f(2) == 2
     assert f(10) == 1
+
+    assert g(0) == 0
+    assert g(2) == 2
+    assert g(10) == 3
+
     with pytest.raises(TypeError):
         f("x")
     with pytest.raises(TypeError):
@@ -92,36 +92,21 @@ def test_modulo() -> None:
     assert modulo(5)(5) == modulo_py(5)(5) == 0
     assert modulo(5)(6) == modulo_py(5)(6) == 1
 
-# TODO test type override
 
-# def test_function_accepting_callable() -> None:
-#     def f(i: int) -> int:
-#         return i % 3
+def test_use_modulo() -> None:
+    assert use_modulo(modulo(5), 7) == 2
+    assert use_modulo(modulo_py(5), 7) == 2
+    assert use_modulo(lambda n: n % 5, 7) == 2
+    assert use_modulo(modulo_override(5), 7) == 2
 
-#     assert function_accepting_pyfunction(lambda i: i % 3, 0) == 0
-#     assert function_accepting_pyfunction(f, 0) == 0
-#     assert function_accepting_pyfunction(f, 10) == 1
-#     assert function_accepting_pyfunction(f, 0) == 0
-
-#     with pytest.raises(TypeError):
-#         function_accepting_pyfunction(f, "x")
-#     with pytest.raises(TypeError):
-#         function_accepting_pyfunction(3)
-#     with pytest.raises(TypeError):
-#         function_accepting_pyfunction(f, f)
-
-
-# def test_function_accepting_cpp_callable() -> None:
-#     f = function_returning_callable(5)
-#     assert function_accepting_cppfunction(f, 7) == 2
-#     assert function_accepting_cppfunction(f, 11) == 1
-#     assert use_modulo(f, 7) == 2
-
-#     assert use_modulo(lambda n: n % 5, 7) == 2
+    assert use_modulo_override(modulo(7), 11) == 4
+    assert use_modulo_override(modulo_py(7), 11) == 4
+    assert use_modulo_override(lambda n: n % 7, 11) == 4
+    assert use_modulo_override(modulo_override(7), 11) == 4
 
 
 def test_all_combinations() -> None:
-    round_sign_lambda = lambda x, s: int(-x if s else x)  # noqa: E731
+    round_sign_lambda: Callable[[float, bool], int] = lambda x, s: int(-x if s else x)  # noqa: E731
 
     round_sign_cpp = round_sign()
 
@@ -148,18 +133,20 @@ def test_function_type_errors() -> None:
         use_round_sign_py(modulo, 1.0)
     with pytest.raises(TypeError):
         use_round_sign(modulo_py, 1.0)
+    with pytest.raises(TypeError):
+        use_round_sign(modulo_override, 1.0)
 
     with pytest.raises(TypeError):
-        use_modulo(round_sign, 1.0)
+        use_modulo(round_sign, 1)
     with pytest.raises(TypeError):
-        use_modulo_py(round_sign, 1.0)
+        use_modulo_py(round_sign, 1)
     with pytest.raises(TypeError):
-        use_modulo(round_sign_py, 1.0)
+        use_modulo(round_sign_py, 1)
+    with pytest.raises(TypeError):
+        use_modulo_override(round_sign, 1)
 
 
 if __name__ == "__main__":
-    # test_function_returning_callable()
-    # test_function_accepting_callable()
-    # test_function_accepting_cpp_callable()
-    test_all_combinations()
-    test_function_type_errors()
+    # test_all_combinations()
+    # test_function_type_errors()
+    test_use_modulo()
