@@ -340,19 +340,19 @@ Other use cases for overriding:
 - for compound (optional and union) types when you want to access them as a generic python object
 rather than via the default mapping - which uses the `std::optional` and `std::variant` templates.
 
-## Callable Types
+## Callable Types TODO rewrite
 
-Passing and returning functions to and from C++ is supported, although support for annotating argument and return types
+~~Passing and returning functions to and from C++ is supported, although support for annotating argument and return types
 is limited. inexmo defines the (non-generic) types `PythonFunction` and `CppFunction` which map respectively pybind11's
 `py::function` and `py::cpp_function` types, which do not intrinsically contain information about the function's
-argument and return types. This means type errors are raised at runtime rather than compile time.
+argument and return types. This means type errors are raised at runtime rather than compile time.~~
 
-In cases where a C++ function has been returned to python, and is then subsequently passed back to C++, a different
+~~In cases where a C++ function has been returned to python, and is then subsequently passed back to C++, a different
 approach is required, since C++ wants more type information: using `CppFunction` on its own will likely result in type
-resolution errors during compilation.
+resolution errors during compilation.~~
 
-inexmo's type translation mechanism doesn't (currently) support "type lists" in python function annotations (e.g.
-`Callable[[float, bool], int]`), but we can use a type override in this case, e.g.:
+~~inexmo's type translation mechanism doesn't (currently) support "type lists" in python function annotations (e.g.
+`Callable[[float, bool], int]`), but we can use a type override in this case, e.g.:~~
 
 ```py
 @compile()
@@ -362,7 +362,7 @@ def function_accepting_cpp_function(f: Annotated[CppFunction, "std::function<int
     """
 ```
 
-See the examples in [test_callable.py](src/test/test_callable.py) for more detail.
+See the examples in [test_callable.py](src/test/test_callable.py) for more detail.~~
 
 ## Troubleshooting
 

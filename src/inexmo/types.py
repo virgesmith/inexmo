@@ -1,4 +1,5 @@
 # dummy generic types for references and pointers
+from collections.abc import Callable
 from copy import copy
 from enum import StrEnum
 from types import NoneType, UnionType
@@ -57,8 +58,7 @@ DEFAULT_TYPE_MAPPING = {
     Self: "py::object",
     type: "py::type",
     UnionType: "std::variant",
-    CppFunction: "py::cpp_function",
-    PythonFunction: "py::function",
+    Callable: "std::function",
 }
 
 header_requirements = {
@@ -70,7 +70,7 @@ header_requirements = {
     "py::array_t": "<pybind11/numpy.h>",
     "std::variant": "<pybind11/stl.h>",
     "std::optional": "<pybind11/stl.h>",
-    "py::cpp_function": "<pybind11/functional.h>",
+    "std::function": "<pybind11/functional.h>",
 }
 
 
@@ -83,7 +83,13 @@ class PyTypeTree:
             raise TypeError("Don't pass annotated types directly to PyTypeTree, use translate_type")
 
         self.type = origin if origin is not None else type_
-        self.subtypes = tuple(PyTypeTree(t) for t in get_args(type_))
+
+        if self.type is Callable:
+            # flatten args, put ret first
+            args, ret = get_args(type_)
+            self.subtypes = (PyTypeTree(ret), *(PyTypeTree(a) for a in args))
+        else:
+            self.subtypes = tuple(PyTypeTree(t) for t in get_args(type_))
 
     def __repr__(self) -> str:
         if self.type == Ellipsis:
@@ -106,8 +112,13 @@ class CppTypeTree:
         # special treatment for numpy arrays
         if tree.type == np.ndarray:
             self.subtypes: tuple[CppTypeTree, ...] = (CppTypeTree(tree.subtypes[1].subtypes[0]),)
+        # elif tree.type is Callable:
+        #     print(tree.subtypes)
+        # #     self.subtypes = (CppTypeTree(tree.subtypes[1]),)
+        # #     for t in tree.subtypes[0]:
+        # #         print(t, type(t))
+        #     raise TypeError("Not supported")
         else:
-            # this doesnt support Callable[[...], ...]
             self.subtypes = tuple(CppTypeTree(t) for t in tree.subtypes if t.type is not NoneType)
         # if we have a "T | None" -> std::variant with one fewer type param, make it a std::optional
         if self.type == "std::variant" and len(self.subtypes) == len(tree.subtypes) - 1:
@@ -123,7 +134,9 @@ class CppTypeTree:
         if self.override:
             return self.override
         t = f"{self.type}"
-        if self.subtypes:
+        if self.type == "std::function":
+            t = t + f"<{self.subtypes[0]}({', '.join(repr(t) for t in self.subtypes[1:])})>"
+        elif self.subtypes:
             t = t + f"<{', '.join(repr(t) for t in self.subtypes)}>"
         if self.qualfier:
             t = self.qualfier.format(t)
