@@ -1,7 +1,8 @@
 import inspect
 import platform
 import re
-from typing import Any, Callable, Literal, cast
+from collections.abc import Callable
+from typing import Any, Literal, cast
 
 from inexmo.types import header_requirements, translate_type
 
@@ -61,8 +62,6 @@ def translate_function_signature(func: Callable[..., Any]) -> tuple[str, list[st
         arg_annotations.insert(pos_only, "py::pos_only()")
     if kw_only:
         arg_annotations.insert(kw_only, "py::kw_only()")
-    # print(arg_defs)
-    # print(arg_annotations)
     return f"[]({', '.join(arg_defs)})" + (f" -> {ret}" if ret else ""), arg_annotations, headers
 
 
@@ -95,7 +94,7 @@ def group_headers(headers: list[str]) -> list[list[str]]:
     stripped = [h.strip() for h in headers]
 
     local_headers = _deduplicate([h for h in stripped if local_pattern.match(h)])
-    # if pybind11/pybind11.h comes before pybind11/stl.h it can cause problems to ensure its included, and last
+    # if pybind11/pybind11.h comes before pybind11/stl.h it can cause problems so ensure its included last
     thirdparty_headers = [*_deduplicate([h for h in stripped if thirdparty_pattern.match(h)]), "<pybind11/pybind11.h>"]
     stdlib_headers = _deduplicate([h for h in stripped if stdlib_pattern.match(h)])
     other_headers = _deduplicate([h for h in stripped if h not in local_headers + thirdparty_headers + stdlib_headers])

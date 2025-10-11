@@ -81,8 +81,7 @@ class PyTypeTree:
             return "..."
         if self.subtypes:
             return f"{self.type.__name__}[{', '.join(repr(t) for t in self.subtypes)}]"
-        else:
-            return f"{self.type.__name__}"
+        return f"{self.type.__name__}"
 
 
 class CppTypeTree:
@@ -156,10 +155,9 @@ def parse_annotation(origin: type) -> tuple[type, dict[str, CppQualifier] | dict
         # CppQualifier subclasses str so check this first
         if isinstance(extras[0], CppQualifier):
             return base, {"qualifier": extras[0]}
-        elif isinstance(extras[0], str):
+        if isinstance(extras[0], str):
             return base, {"override": extras[0]}
-        else:
-            raise TypeError(f"Unexpected extra for {base}: {extras[0]}({type(extras[0])})")
+        raise TypeError(f"Unexpected extra for {base}: {extras[0]}({type(extras[0])})")
     return origin, {}
 
 

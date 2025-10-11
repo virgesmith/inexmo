@@ -29,7 +29,7 @@ class Outer:
 
 
 def test_get_function_scope() -> None:
-    assert get_function_scope(test_nested) == tuple()
+    assert get_function_scope(test_nested) == ()
     assert get_function_scope(Outer.Inner.method) == ("Outer", "Inner")
 
 

@@ -5,7 +5,7 @@ import pytest
 
 from inexmo import compile
 
-if not platform.system() == "Linux":
+if platform.system() != "Linux":
     pytest.skip("skipping linux-only tests", allow_module_level=True)
 
 
@@ -35,6 +35,6 @@ def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:  # t
     """
 
 
-def test_local_static_library(build_libs: None) -> None:
+def test_local_static_library(build_libs: None) -> None:  # noqa: ARG001
     assert fibonacci(10) == 55
     assert fibonacci(20) == fibonacci(18) + fibonacci(19) == 6765

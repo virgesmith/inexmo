@@ -292,17 +292,19 @@ In Python function arguments are always passed by "value reference" (essentially
 ```py
 from typing import Annotated
 
-import numpy as np
-import numpy.typing as npt
-
 from inexmo import compile, CppQualifier
 
 @compile()
-def do_something(array: Annotated[npt.NDArray[np.float64], CppQualifier.CRef]) -> int:
+def do_something(text: Annotated[str, CppQualifier.CRef]) -> int:
     ...
 ```
 
-which will use `const py::array_t<double>&` as the argument type.
+which will produce a function binding with this signature:
+
+```cpp
+m.def("_do_something", [](const std::string& text) -> int { ...
+```
+
 
 Available qualifiers are:
 

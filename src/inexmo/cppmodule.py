@@ -100,8 +100,7 @@ class ModuleSpec:
             raise ValueError(
                 "Requested C++ standard {} conflicts with previously set standard. Ensure only one standard per module"
             )
-        else:
-            self.cxx_std = cxx_std
+        self.cxx_std = cxx_std
         return self
 
     def make_source(self, module_name: str) -> tuple[str, str]:
