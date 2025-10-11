@@ -1,7 +1,7 @@
 import importlib
 from unittest.mock import MagicMock
 
-from inexmo.logger import Logger  # noqa: E402
+from inexmo.logger import Logger
 
 # need to import this way to disambiguate compile the module from compile the decorator
 compile_module = importlib.import_module("inexmo.compile")

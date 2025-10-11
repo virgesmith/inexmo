@@ -5,7 +5,7 @@ import pytest
 
 from inexmo import compile
 
-if not platform.system() == "Linux":
+if platform.system() != "Linux":
     pytest.skip("skipping linux-only tests", allow_module_level=True)
 
 
@@ -23,6 +23,6 @@ def lucas(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:  # type:
     """
 
 
-def test_local_shared_library(build_libs: None) -> None:
+def test_local_shared_library(build_libs: None) -> None:  # noqa: ARG001
     # 2, 1, 3, 4, 7, 11, 18, 29, 47, 76, 123
     assert lucas(10) == 123

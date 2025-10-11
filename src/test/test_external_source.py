@@ -4,7 +4,7 @@ import pytest
 
 from inexmo import compile
 
-if not platform.system() == "Linux":
+if platform.system() != "Linux":
     pytest.skip("skipping linux-only tests", allow_module_level=True)
 
 

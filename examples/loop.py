@@ -53,8 +53,8 @@ def main() -> None:
 
     print("N | py (ms) | cpp (ms) | speedup (%)")
     print("-:|--------:|---------:|-----------:")
-    for N in [1000, 10000, 100000, 1000000, 10000000]:
-        data = pd.Series(index=range(N), data=rng.integers(-100, 101, size=N), name="cashflow")
+    for n in [1000, 10000, 100000, 1000000, 10000000]:
+        data = pd.Series(index=range(n), data=rng.integers(-100, 101, size=n), name="cashflow")
 
         start = process_time()
         py_result = calc_balances_py(data, rate)
@@ -66,7 +66,7 @@ def main() -> None:
         cpp_result = calc_balances_cpp(data, rate)
         cpp_time = process_time() - start
 
-        print(f"{N} | {py_time * 1000:.1f} | {cpp_time * 1000:.1f} | {100 * (py_time / cpp_time - 1.0):.0f}")
+        print(f"{n} | {py_time * 1000:.1f} | {cpp_time * 1000:.1f} | {100 * (py_time / cpp_time - 1.0):.0f}")
         assert py_result.equals(cpp_result)
 
 

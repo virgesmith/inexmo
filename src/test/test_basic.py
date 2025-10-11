@@ -148,7 +148,7 @@ def test_compile_error() -> None:
 }"""
     spec = ModuleSpec().add_function(
         FunctionSpec(
-            name="error", body=f, arg_annotations="", scope=tuple(), return_value_policy=ReturnValuePolicy.Automatic
+            name="error", body=f, arg_annotations="", scope=(), return_value_policy=ReturnValuePolicy.Automatic
         )
     )
     with pytest.raises(CompilationError):

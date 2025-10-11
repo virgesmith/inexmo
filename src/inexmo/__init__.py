@@ -13,12 +13,12 @@ from .utils import (
 )
 
 __all__ = [
-    "__version__",
     "CompilationError",
     "CppQualifier",
     "CppTypeError",
     "Platform",
     "ReturnValuePolicy",
+    "__version__",
     "compile",
     "platform_specific",
 ]

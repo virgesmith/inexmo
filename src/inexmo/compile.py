@@ -4,11 +4,12 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from functools import cache, lru_cache, wraps
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import toml
@@ -45,7 +46,10 @@ _module_registry: dict[str, ModuleSpec] = defaultdict(ModuleSpec)
 # importlib.reload doesn't work here, the old module remains in memory
 def _get_module_checksum(module_name: str) -> str | None:
     p = subprocess.run(
-        ["python", "-c", f"import {module_name} as m; print(m.__checksum__)"], capture_output=True, text=True
+        ["python", "-c", f"import {module_name} as m; print(m.__checksum__)"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     if p.returncode == 0:
         return p.stdout.strip()
@@ -86,7 +90,7 @@ def _check_build_fetch_module_impl(
         logger(f"(re)building module {module_root_dir.name}.{ext_name}.{module_name}")
 
         # save the code with the hash embedded
-        with open(module_dir / "module.cpp", "w") as fd:
+        with (module_dir / "module.cpp").open("w") as fd:
             fd.write(code.replace("__HASH__", str(hashval)))
 
         logger(f"wrote {module_dir}/module.cpp")
@@ -109,14 +113,13 @@ def _check_build_fetch_module_impl(
             os.chdir(module_dir)
             # Redirect stdout to a log file (does not work in pytest)
             # Redirecting stderr doesnt work at all
-            with open("build.log", "w") as fd:
-                with redirect_stdout(fd), redirect_stderr(fd):
-                    setup(
-                        name=ext_name,
-                        ext_modules=ext_modules,
-                        script_args=["build_ext", "--inplace"],
-                        cmdclass={"build_ext": build_ext},
-                    )
+            with Path("./build.log").open("w") as fd, redirect_stdout(fd), redirect_stderr(fd):
+                setup(
+                    name=ext_name,
+                    ext_modules=ext_modules,
+                    script_args=["build_ext", "--inplace"],
+                    cmdclass={"build_ext": build_ext},
+                )
         except SystemExit as e:
             raise CompilationError(str(e)) from e
         finally:
@@ -181,7 +184,7 @@ def compile(
         scope = get_function_scope(func)
 
         sig, args, headers = translate_function_signature(func)
-        module_name = f"{Path(inspect.getfile(func)).stem}"  # noqa: F821
+        module_name = f"{Path(inspect.getfile(func)).stem}"
         function_body = sig + " {" + (func.__doc__ or "") + "}"
 
         logger(f"registering {module_name}_ext.{module_name}.{func.__name__} (in {module_root_dir})")
