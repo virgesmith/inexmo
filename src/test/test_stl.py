@@ -48,5 +48,18 @@ def test_tuple() -> None:
     assert tuple_sum(range(4)) == 6
 
 
+@compile()
+def frozenset_length(s: frozenset[int]) -> int:  # type: ignore[empty-body]
+    """
+    // s.insert(5);
+    return s.size();
+    """
+
+
+def test_frozenset() -> None:
+    assert frozenset_length(frozenset((1, 2, 3, 1))) == 3
+    assert frozenset_length({1, 2, 3, 1}) == 3  # noqa: B033
+
+
 if __name__ == "__main__":
     test_vector()
