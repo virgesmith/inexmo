@@ -37,8 +37,10 @@ DEFAULT_TYPE_MAPPING = {
     bytearray: "py::bytearray",
     list: "std::vector",
     set: "std::unordered_set",
+    frozenset: "const std::unordered_set",
     dict: "std::unordered_map",
     tuple: "std::tuple",  # ... ellipsis not supported
+    slice: "py::slice",
     Any: "py::object",
     Self: "py::object",
     type: "py::type",
