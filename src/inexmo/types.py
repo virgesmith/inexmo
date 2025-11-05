@@ -2,7 +2,7 @@
 from collections.abc import Callable
 from copy import copy
 from enum import StrEnum
-from types import NoneType, UnionType
+from types import EllipsisType, NoneType, UnionType
 from typing import Annotated, Any, Self, get_args, get_origin
 
 import numpy as np
@@ -39,13 +39,14 @@ DEFAULT_TYPE_MAPPING = {
     set: "std::unordered_set",
     frozenset: "const std::unordered_set",
     dict: "std::unordered_map",
-    tuple: "std::tuple",  # ... ellipsis not supported
+    tuple: "std::tuple",  # ... ellipsis not supported here
     slice: "py::slice",
     Any: "py::object",
     Self: "py::object",
     type: "py::type",
     UnionType: "std::variant",
     Callable: "std::function",
+    EllipsisType: "py::ellipsis",
 }
 
 header_requirements = {
@@ -98,12 +99,6 @@ class CppTypeTree:
         # special treatment for numpy arrays
         if tree.type == np.ndarray:
             self.subtypes: tuple[CppTypeTree, ...] = (CppTypeTree(tree.subtypes[1].subtypes[0]),)
-        # elif tree.type is Callable:
-        #     print(tree.subtypes)
-        # #     self.subtypes = (CppTypeTree(tree.subtypes[1]),)
-        # #     for t in tree.subtypes[0]:
-        # #         print(t, type(t))
-        #     raise TypeError("Not supported")
         else:
             self.subtypes = tuple(CppTypeTree(t) for t in tree.subtypes if t.type is not NoneType)
         # if we have a "T | None" -> std::variant with one fewer type param, make it a std::optional

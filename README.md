@@ -33,7 +33,8 @@ location can be changed).
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
 - Supports positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`),
-`*args` and `**kwargs`
+`*args` and `**kwargs`. Any stricter type annotations will be used only by python type checkers - `inexmo` maps them
+(respectively) to `py::args` and `py::kwargs`.
 - Using annotated types, you can:
     - qualify C++ arguments by value, reference, or (dumb) pointer, with or without `const`
     - override the default mapping of python types to C++ types
@@ -59,6 +60,8 @@ purely in C++ - see the Fibonacci example in [test_types.py](src/test/test_types
 and although it will broadcast lower-dimensional arguments where possible (e.g. adding a scalar to a vector), it is
 not suitable for more complex operations (e.g. matrix multiplication)
 - Using auto-vectorisation incurs a major performance penalty when the function is called with all scalar arguments
+- While the ellipsis (`...`) type is supported for array slicing, type annotations containing ellipses are not
+translatable to C++. Variables that may be of this type can be annotated with `typing.EllipsisType`.
 - Header files are ordered in sensible groups (inline code, local headers, library headers, system headers), but there
 is currently no way to fine-tune this ordering
 - For methods, type annotations must be provided for the context: `self: Self` for instance methods, or `cls: type` for
@@ -266,10 +269,14 @@ Python | C++
 `np.float64` | `double`
 `str` | `std::string`
 `np.ndarray` | `py::array_t`
+`bytes` | `py::bytes`
+`bytearray` | `py::bytearray`
 `list` | `std::vector`
 `set` | `std::unordered_set`
+`frozenset` | `const std::unordered_set`
 `dict` | `std::unordered_map`
 `tuple` | `std::tuple`
+`slice` | `py::slice`
 `Any` | `py::object`
 `Self` | `py::object`
 `type` | `py::type`
@@ -278,10 +285,10 @@ Python | C++
 `T \| None` | `std::optional<T>`
 `T \| U` | `std::variant<T, U>`
 `Callable` | `std::function`
+`...` | `py::ellipsis`
 
 
 Thus, `dict[str, list[float]]` becomes - by default -  `std::unordered_map<std::string, std::vector<double>>`
-
 
 ### Qualifiers
 
@@ -341,6 +348,9 @@ Other use cases for overriding:
 `Annotated[pd.Series, "py::object"]` (rather than the uninformative `Any`)
 - for compound (optional and union) types when you want to access them as a generic python object
 rather than via the default mapping - which uses the `std::optional` and `std::variant` templates.
+
+NB. Nested Annotated types (e.g. `Annotated[list[Annotated[int, "size_t"]], CppQualifier.CRef]`) are not currently
+supported. A workaround is to annotate the entire type, e.g. `Annotated[list[int], "const std::vector<size_t>&"]`
 
 ## Callable Types
 
