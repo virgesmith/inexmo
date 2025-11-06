@@ -32,9 +32,9 @@ location can be changed).
 "vectorised" operations. You can either implement the function directly, or write a scalar function and make
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
-- Supports positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`),
-`*args` and `**kwargs`. Any stricter type annotations will be used only by python type checkers - `xenoform` maps them
-(respectively) to `py::args` and `py::kwargs`.
+- Supports positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`)
+- Supports `*args` and `**kwargs`, mapped  (respectively) to `py::args` and `py::kwargs`. NB type annotations for these
+types are still useful for python type checkers.
 - Using annotated types, you can:
     - qualify C++ arguments by value, reference, or (dumb) pointer, with or without `const`
     - override the default mapping of python types to C++ types
@@ -61,7 +61,7 @@ and although it will broadcast lower-dimensional arguments where possible (e.g. 
 not suitable for more complex operations (e.g. matrix multiplication)
 - Using auto-vectorisation incurs a major performance penalty when the function is called with all scalar arguments
 - While the ellipsis (`...`) type is supported for array slicing, type annotations containing ellipses are not
-translatable to C++. Variables that may be of this type can be annotated with `typing.EllipsisType`.
+translatable to C++. Arguments that may be of this type can be annotated with `typing.EllipsisType`.
 - Header files are ordered in sensible groups (inline code, local headers, library headers, system headers), but there
 is currently no way to fine-tune this ordering
 - For methods, type annotations must be provided for the context: `self: Self` for instance methods, or `cls: type` for
@@ -331,7 +331,7 @@ Qualifier | C++
 
 ### Overriding
 
-In some circumstances, you may want to provide a custom mapping. This is done by passing the required C++ type (as a string) in the annotation. For example, to restrict integer inputs and outputs to nonnegative values, use an unsigned type:
+In some circumstances, you may want to provide a custom mapping. This is done by passing the required C++ type (as a string) in the annotation. For example, to restrict integer inputs and outputs to non-negative values, use an unsigned type:
 
 ```py
 from typing import Annotated
