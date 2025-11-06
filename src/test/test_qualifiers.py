@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from inexmo import compile
-from inexmo.types import CppQualifier
+from xenoform import compile
+from xenoform.types import CppQualifier
 
 
 @compile()

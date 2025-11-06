@@ -1,14 +1,14 @@
-# Inline Extension Modules
+# `xenoform`: inlined C++ functions
 
 Write and execute superfast C or C++ inside your Python code! Here's how...
 
-Write a function or method definition **in python**, add the `compile` decorator and put the **C++** implementation in a
-docstr:
+Write a type-annotated function or method definition **in python**, add the `compile` decorator and put the **C++**
+implementation in a docstr:
 
 ```py
-import inexmo
+import xenoform
 
-@inexmo.compile(vectorise=True)
+@xenoform.compile(vectorise=True)
 def max(i: int, j: int) -> int:  # type: ignore[empty-body]
   "return i > j ? i : j;"
 ```
@@ -33,7 +33,7 @@ location can be changed).
 use of pybind11's auto-vectorisation feature, if appropriate. (Parallel library support out of the
 box may vary, e.g. on a mac, you may need to manually `brew install libomp` for openmp support)
 - Supports positional and keyword arguments with defaults, including positional-only and keyword-only markers (`/`,`*`),
-`*args` and `**kwargs`. Any stricter type annotations will be used only by python type checkers - `inexmo` maps them
+`*args` and `**kwargs`. Any stricter type annotations will be used only by python type checkers - `xenoform` maps them
 (respectively) to `py::args` and `py::kwargs`.
 - Using annotated types, you can:
     - qualify C++ arguments by value, reference, or (dumb) pointer, with or without `const`
@@ -122,7 +122,7 @@ numpy header:
 ```py
 from typing import Annotated
 
-from inexmo import compile
+from xenoform import compile
 
 @compile(extra_headers=["<pybind11/numpy.h>"])
 def calc_balances_cpp(data: Annotated[pd.Series, "py::object"], rate: float) -> Annotated[pd.Series, "py::object"]:  # type: ignore[empty-body]
@@ -161,13 +161,13 @@ N | py (ms) | cpp (ms) | speedup (%)
 10000000 | 2872.4 | 42.9 | 6601
 
 Full code is in [examples/loop.py](./examples/loop.py). To run the example scripts, install the "examples" extra, e.g.
-`pip install inexmo[examples]` or `uv sync --extra examples`.
+`pip install xenoform[examples]` or `uv sync --extra examples`.
 
 ### `numpy` and vectorised operations
 
 > "vectorisation" in this sense means implementing loops in compiled, rather than interpreted, code. In fact, the C++ implementation below also uses optimisations including "true" vectorisation (meaning hardware SIMD instructions).
 
-For "standard" linear algebra and array operations, implementations in *inexmo* are very unlikely to improve on heavily
+For "standard" linear algebra and array operations, implementations in *xenoform* are very unlikely to improve on heavily
 optimised numpy implementations, such as matrix multiplication.
 
 However, significant performance improvements may be seen for more "bespoke" operations, particularly for
@@ -184,10 +184,10 @@ def calc_dist_matrix_py(p: npt.NDArray) -> npt.NDArray:
 bearing in mind there is some redundancy here as the resulting matrix is symmetric; however vectorisation with
 redundancy will always win the tradeoff against loops with no redundancy.
 
-In C++ this tradeoff does not exist. A reasonably well optimised C++ implementation using *inexmo* is:
+In C++ this tradeoff does not exist. A reasonably well optimised C++ implementation using *xenoform* is:
 
 ```py
-from inexmo import compile
+from xenoform import compile
 
 @compile(extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
 def calc_dist_matrix_cpp(points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:  # type: ignore[empty-body]
@@ -242,11 +242,11 @@ Full code is in [examples/distance_matrix.py](./examples/distance_matrix.py).
 ## Configuration
 
 By default, compiled modules are placed in an `ext` subdirectory of your project's root. If this location is unsuitable,
-it can be changed by placing `inexmo.toml` in the project root, containing your preferred path:
+it can be changed by placing `xenoform.toml` in the project root, containing your preferred path:
 
 ```toml
 [extensions]
-module_root_dir = "/tmp/inexmo_ext"
+module_root_dir = "/tmp/xenoform_ext"
 ```
 
 NB avoid using characters in paths (e.g. space, hyphen) that would not be valid in a python module name.
@@ -299,7 +299,7 @@ In Python function arguments are always passed by "value reference" (essentially
 ```py
 from typing import Annotated
 
-from inexmo import compile, CppQualifier
+from xenoform import compile, CppQualifier
 
 @compile()
 def do_something(text: Annotated[str, CppQualifier.CRef]) -> int:
@@ -336,7 +336,7 @@ In some circumstances, you may want to provide a custom mapping. This is done by
 ```py
 from typing import Annotated
 
-from inexmo import compile
+from xenoform import compile
 
 @compile()
 def fibonacci(n: Annotated[int, "uint64_t"]) -> Annotated[int, "uint64_t"]:

@@ -1,4 +1,4 @@
-from inexmo import ReturnValuePolicy, compile
+from xenoform import ReturnValuePolicy, compile
 
 
 @compile(return_value_policy=ReturnValuePolicy.Reference, verbose=True)

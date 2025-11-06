@@ -2,7 +2,7 @@ from typing import Annotated
 
 import numpy as np
 
-from inexmo import compile
+from xenoform import compile
 
 
 # this isn't actually a template specialisation it uses py::bytes rather than std::vector<unsigned char>

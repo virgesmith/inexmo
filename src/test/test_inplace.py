@@ -3,7 +3,7 @@ from typing import Annotated
 import numpy as np
 import numpy.typing as npt
 
-from inexmo import compile
+from xenoform import compile
 
 # Remember most python types are immutable, so they cannot be modified in-place
 

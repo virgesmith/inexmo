@@ -1,5 +1,5 @@
 [project]
-name = "inexmo"
+name = "xenoform"
 version = "0.1.0"
 description = "Inline extension modules"
 readme = "README.md"
@@ -39,7 +39,7 @@ dev = [
 testpaths = [
   "src/test"
 ]
-addopts = "--cov=src/inexmo --cov-report html --cov-fail-under=97 --doctest-modules" #--doctest-glob=README.md"
+addopts = "--cov=src/xenoform --cov-report html --cov-fail-under=97 --doctest-modules" #--doctest-glob=README.md"
 
 [tool.ruff]
 line-length = 120

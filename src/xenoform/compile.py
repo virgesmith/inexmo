@@ -16,15 +16,15 @@ import toml
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 
-from inexmo.cppmodule import FunctionSpec, ModuleSpec, ReturnValuePolicy
-from inexmo.errors import CompilationError
-from inexmo.logger import get_logger
-from inexmo.utils import _deduplicate, get_function_scope, translate_function_signature
+from xenoform.cppmodule import FunctionSpec, ModuleSpec, ReturnValuePolicy
+from xenoform.errors import CompilationError
+from xenoform.logger import get_logger
+from xenoform.utils import _deduplicate, get_function_scope, translate_function_signature
 
 
 def _get_module_root_dir() -> Path:
     path = Path("./ext")  # default
-    config_file = Path("inexmo.toml")
+    config_file = Path("xenoform.toml")
     if config_file.exists():
         config = toml.load(config_file)
         path = Path(config["extensions"]["module_root_dir"])

@@ -6,7 +6,7 @@ from typing import Annotated
 import numpy as np
 import pandas as pd
 
-from inexmo import compile
+from xenoform import compile
 
 
 def calc_balances_py(data: pd.Series, rate: float) -> pd.Series:

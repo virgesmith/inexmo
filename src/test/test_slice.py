@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from inexmo import compile
+from xenoform import compile
 
 
 @compile()

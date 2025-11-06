@@ -1,10 +1,10 @@
 import importlib
 from unittest.mock import MagicMock
 
-from inexmo.logger import Logger
+from xenoform.logger import Logger
 
 # need to import this way to disambiguate compile the module from compile the decorator
-compile_module = importlib.import_module("inexmo.compile")
+compile_module = importlib.import_module("xenoform.compile")
 
 
 @compile_module.compile(verbose=True)  # type: ignore[misc]

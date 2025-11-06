@@ -1,4 +1,4 @@
-from inexmo import compile
+from xenoform import compile
 
 
 @compile(extra_includes=["<numeric>"])

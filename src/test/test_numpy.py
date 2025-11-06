@@ -3,8 +3,8 @@ from typing import Annotated
 import numpy as np
 import numpy.typing as npt
 
-from inexmo.compile import compile
-from inexmo.types import CppQualifier
+from xenoform.compile import compile
+from xenoform.types import CppQualifier
 
 
 @compile()

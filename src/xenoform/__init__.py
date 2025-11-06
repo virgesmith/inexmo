@@ -1,6 +1,6 @@
 import importlib.metadata
 
-__version__ = importlib.metadata.version("inexmo")
+__version__ = importlib.metadata.version("xenoform")
 
 
 from .compile import compile

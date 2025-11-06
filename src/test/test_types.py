@@ -3,9 +3,9 @@ from typing import Annotated
 import numpy.typing as npt
 import pytest
 
-from inexmo import compile
-from inexmo.types import CppQualifier, PyTypeTree, header_requirements, parse_annotation, translate_type
-from inexmo.utils import _deduplicate
+from xenoform import compile
+from xenoform.types import CppQualifier, PyTypeTree, header_requirements, parse_annotation, translate_type
+from xenoform.utils import _deduplicate
 
 
 def test_basic_types() -> None:
