@@ -3,7 +3,7 @@ from typing import Annotated
 
 import pytest
 
-from inexmo import compile
+from xenoform import compile
 
 if platform.system() != "Linux":
     pytest.skip("skipping linux-only tests", allow_module_level=True)

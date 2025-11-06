@@ -1,4 +1,4 @@
-from inexmo.utils import group_headers
+from xenoform.utils import group_headers
 
 
 def test_group_headers_basic() -> None:

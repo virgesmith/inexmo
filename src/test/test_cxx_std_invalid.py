@@ -2,7 +2,7 @@ import platform
 
 import pytest
 
-from inexmo import CompilationError, compile
+from xenoform import CompilationError, compile
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="cl.exe only warns")

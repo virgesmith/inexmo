@@ -7,7 +7,7 @@ from typing import Annotated, Any, Self, get_args, get_origin
 
 import numpy as np
 
-from inexmo.errors import CppTypeError
+from xenoform.errors import CppTypeError
 
 
 class CppQualifier(StrEnum):

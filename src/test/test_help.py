@@ -1,5 +1,5 @@
-from inexmo import compile
-from inexmo.compile import _get_function
+from xenoform import compile
+from xenoform.compile import _get_function
 
 docstr = """This is a test function
 used to test the help system

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from inexmo import compile
+from xenoform import compile
 
 
 @compile(vectorise=True)

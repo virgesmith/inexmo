@@ -1,6 +1,6 @@
 import pytest
 
-from inexmo import compile
+from xenoform import compile
 
 
 def test_cxx_std() -> None:

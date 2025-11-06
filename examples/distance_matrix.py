@@ -5,7 +5,7 @@ import time
 import numpy as np
 import numpy.typing as npt
 
-from inexmo import compile
+from xenoform import compile
 
 
 def calc_dist_matrix_py(p: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:

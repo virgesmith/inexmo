@@ -1,7 +1,7 @@
 import pytest
 
-from inexmo import compile
-from inexmo.utils import get_function_scope
+from xenoform import compile
+from xenoform.utils import get_function_scope
 
 
 def outer(x: float) -> float:
