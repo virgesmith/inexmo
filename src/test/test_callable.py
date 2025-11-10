@@ -131,22 +131,22 @@ def test_all_combinations() -> None:
 
 def test_function_type_errors() -> None:
     with pytest.raises(TypeError):
-        use_round_sign(modulo, 1.0)
+        use_round_sign(modulo, 1.0)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_round_sign_py(modulo, 1.0)
+        use_round_sign_py(modulo, 1.0)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_round_sign(modulo_py, 1.0)
+        use_round_sign(modulo_py, 1.0)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_round_sign(modulo_override, 1.0)
+        use_round_sign(modulo_override, 1.0)  # type: ignore[arg-type]
 
     with pytest.raises(TypeError):
-        use_modulo(round_sign, 1)
+        use_modulo(round_sign, 1)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_modulo_py(round_sign, 1)
+        use_modulo_py(round_sign, 1)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_modulo(round_sign_py, 1)
+        use_modulo(round_sign_py, 1)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_modulo_override(round_sign, 1)
+        use_modulo_override(round_sign, 1)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

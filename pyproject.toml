@@ -1,7 +1,7 @@
 [project]
 name = "xenoform"
-version = "0.1.0"
-description = "Inline extension modules"
+version = "0.1.1"
+description = "Inlined C++ functions"
 readme = "README.md"
 authors = [
     { name = "virgesmith", email = "andrew@friarswood.net" }
