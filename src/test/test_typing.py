@@ -1,4 +1,4 @@
-from inspect import Parameter, signature
+from inspect import signature
 from typing import Annotated
 
 from xenoform import compile
