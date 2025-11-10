@@ -82,13 +82,13 @@ def test_modulo() -> None:
     assert g(10) == 3
 
     with pytest.raises(TypeError):
-        modulo("x")
+        modulo("x")  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        f("x")
+        f("x")  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        f()
+        f()  # type: ignore[call-arg]
     with pytest.raises(TypeError):
-        f(2, 3)
+        f(2, 3)  # type: ignore[call-arg]
 
     assert modulo(2)(2) == modulo_py(2)(2) == 0
     assert modulo(3)(3) == modulo_py(3)(3) == 0

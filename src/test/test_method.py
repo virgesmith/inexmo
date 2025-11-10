@@ -78,11 +78,9 @@ def test_method() -> None:
 def test_method_incorrect_usage() -> None:
     with pytest.raises(TypeError):
         ClassA.method()  # type: ignore[call-arg]
-    # C++ impl should raise same error type as python - they are slightly different though:
-    # TypeError: ClassA.method() missing 1 required positional argument: 'self'
-    # TypeError: _ClassB_method(): incompatible function arguments.
+    # C++ impl should raise same error type as python
     with pytest.raises(TypeError):
-        ClassB.method()
+        ClassB.method()  # type: ignore[call-arg]
 
 
 def test_class_method() -> None:

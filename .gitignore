@@ -9,6 +9,7 @@ wheels/
 .mypy_cache
 .coverage
 
+.env
 # Virtual environments
 .venv
 

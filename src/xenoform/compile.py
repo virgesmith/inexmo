@@ -9,7 +9,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from functools import cache, lru_cache, wraps
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import ParamSpec, TypeVar, cast
 
 import numpy as np
 import toml
@@ -136,11 +136,15 @@ def _get_module(module_name: str) -> ModuleType:
     return module
 
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
 @lru_cache  # limited function cache
-def _get_function(module_name: str, function_name: str) -> Any:
+def _get_function(module_name: str, function_name: str) -> Callable[P, R]:
     module = _get_module(module_name)
     logger(f"redirected {module_name}.{function_name[1:]} to compiled function {module.__name__}.{function_name}")
-    return getattr(module, function_name)
+    return cast(Callable[P, R], getattr(module, function_name))
 
 
 def compile(
@@ -155,7 +159,7 @@ def compile(
     cxx_std: int = 20,
     help: str | None = None,
     verbose: bool = False,
-) -> Callable[..., Callable[..., Any]]:
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator factory for compiling C/C++ function implementations into extension modules.
 
@@ -179,7 +183,7 @@ def compile(
     else:
         logger.disable()
 
-    def register_function(func: Callable[..., Any]) -> Callable[..., Any]:
+    def register_function(func: Callable[P, R]) -> Callable[P, R]:
         """This registers the function, actual compilation is deferred"""
         scope = get_function_scope(func)
 
@@ -226,9 +230,11 @@ def compile(
         )
 
         @wraps(func)
-        def call_function(*args: Any, **kwargs: Any) -> Any:
+        def call_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Compilation is deferred until here (and cached)"""
-            return _get_function(module_name, function_spec.qualified_cpp_name())(*args, **kwargs)
+            # error: Argument 1 has incompatible type "*P.args"; expected "Never"  [arg-type]
+            # error: Argument 2 has incompatible type "**P.kwargs"; expected "Never"  [arg-type]
+            return _get_function(module_name, function_spec.qualified_cpp_name())(*args, **kwargs)  # type: ignore[arg-type]
 
         return call_function
 

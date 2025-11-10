@@ -18,7 +18,7 @@ def test_documented_function() -> None:
     assert documented_function.__doc__ == docstr
     # access pybind11 module directly
     ext_func = _get_function("test_help", "_documented_function")
-    assert docstr in ext_func.__doc__
+    assert docstr in (ext_func.__doc__ or "")
 
 
 if __name__ == "__main__":

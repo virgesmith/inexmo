@@ -11,7 +11,7 @@ def outer(x: float) -> float:
         return x * i;
         """
 
-    return inner(x, 5)  # type: ignore[no-any-return]
+    return inner(x, 5)
 
 
 def test_nested() -> None:
