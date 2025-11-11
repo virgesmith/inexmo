@@ -42,13 +42,13 @@ def test_qualifiers() -> None:
     assert vector_sum_using_py(list(range(5))) == 10
     # use a const pointer to const
     assert vector_sum_using_cptrc([1, 2, 3, 4]) == 10
-    assert vector_sum_using_cptrc(range(5)) == 10
+    assert vector_sum_using_cptrc(range(5)) == 10  # type: ignore[arg-type]
     # use a const reference
     assert vector_sum_using_cref([1, 2, 3, 4]) == 10
-    assert vector_sum_using_cref(range(5)) == 10
+    assert vector_sum_using_cref(range(5)) == 10  # type: ignore[arg-type]
     # use an rvalue reference
     assert vector_sum_using_rref([1, 2, 3, 4]) == 10
-    assert vector_sum_using_rref(range(5)) == 10
+    assert vector_sum_using_rref(range(5)) == 10  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

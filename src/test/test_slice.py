@@ -63,7 +63,7 @@ def test_ellipsis() -> None:
     assert explicit_ellipsis(slice(1)) == "slice"
     assert explicit_ellipsis(...) == "ellipsis"
     with pytest.raises(TypeError):
-        explicit_ellipsis("abc")
+        explicit_ellipsis("abc")  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

@@ -82,13 +82,13 @@ def test_modulo() -> None:
     assert g(10) == 3
 
     with pytest.raises(TypeError):
-        modulo("x")
+        modulo("x")  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        f("x")
+        f("x")  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        f()
+        f()  # type: ignore[call-arg]
     with pytest.raises(TypeError):
-        f(2, 3)
+        f(2, 3)  # type: ignore[call-arg]
 
     assert modulo(2)(2) == modulo_py(2)(2) == 0
     assert modulo(3)(3) == modulo_py(3)(3) == 0
@@ -131,22 +131,22 @@ def test_all_combinations() -> None:
 
 def test_function_type_errors() -> None:
     with pytest.raises(TypeError):
-        use_round_sign(modulo, 1.0)
+        use_round_sign(modulo, 1.0)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_round_sign_py(modulo, 1.0)
+        use_round_sign_py(modulo, 1.0)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_round_sign(modulo_py, 1.0)
+        use_round_sign(modulo_py, 1.0)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_round_sign(modulo_override, 1.0)
+        use_round_sign(modulo_override, 1.0)  # type: ignore[arg-type]
 
     with pytest.raises(TypeError):
-        use_modulo(round_sign, 1)
+        use_modulo(round_sign, 1)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_modulo_py(round_sign, 1)
+        use_modulo_py(round_sign, 1)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_modulo(round_sign_py, 1)
+        use_modulo(round_sign_py, 1)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        use_modulo_override(round_sign, 1)
+        use_modulo_override(round_sign, 1)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

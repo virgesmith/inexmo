@@ -31,4 +31,4 @@ def test_byteseq() -> None:
     assert len_byteseq(b"123") == 3
     assert len_byteseq(bytearray([1, 2, 3])) == 3
     # also works with numpy arrays as they support the buffer protocol
-    assert len_byteseq(np.array([1, 2, 3])) == 3
+    assert len_byteseq(np.array([1, 2, 3])) == 3  # type: ignore[arg-type]
