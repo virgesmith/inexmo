@@ -2,7 +2,7 @@
 
 ![PyPI - Version](https://img.shields.io/pypi/v/xenoform)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/xenoform)
-![PyPI - License](https://img.shields.io/pypi/l/:xenoform)
+![PyPI - License](https://img.shields.io/pypi/l/xenoform)
 
 Write and execute superfast C or C++ inside your Python code! Here's how...
 
