@@ -1,5 +1,9 @@
 # `xenoform`: inlined C++ functions
 
+![PyPI - Version](https://img.shields.io/pypi/v/xenoform)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/xenoform)
+![PyPI - License](https://img.shields.io/pypi/l/xenoform)
+
 Write and execute superfast C or C++ inside your Python code! Here's how...
 
 Write a type-annotated function or method definition **in python**, add the `compile` decorator and put the **C++**
@@ -10,7 +14,7 @@ import xenoform
 
 @xenoform.compile(vectorise=True)
 def max(i: int, j: int) -> int:  # type: ignore[empty-body]
-  "return i > j ? i : j;"
+    "return i > j ? i : j;"
 ```
 
 When Python loads this file, the source for an extension module is generated with all functions using this decorator.
@@ -93,6 +97,9 @@ kwarg | type(=default) | description
 
 ## Performance
 
+To run the example scripts, install the "examples" extra, e.g. `pip install xenoform[examples]` or
+`uv sync --extra examples`. Links to the code can be found below.
+
 ### Loops
 
 Implementing loops in optimised compiled code can be orders of magnitude faster than loops in Python. Consider this
@@ -160,8 +167,7 @@ N | py (ms) | cpp (ms) | speedup (%)
 1000000 | 311.5 | 6.5 | 4709
 10000000 | 2872.4 | 42.9 | 6601
 
-Full code is in [examples/loop.py](./examples/loop.py). To run the example scripts, install the "examples" extra, e.g.
-`pip install xenoform[examples]` or `uv sync --extra examples`.
+Full code is in [examples/loop.py](./examples/loop.py).
 
 ### `numpy` and vectorised operations
 
