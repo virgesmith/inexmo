@@ -1,12 +1,25 @@
 [project]
 name = "xenoform"
-version = "0.1.1"
+version = "0.1.2"
 description = "Inlined C++ functions"
 readme = "README.md"
 authors = [
     { name = "virgesmith", email = "andrew@friarswood.net" }
 ]
+license = "MIT"
+license-files = ["LICENCE.md"]
 requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/virgesmith/xenoform"
+"Bug Tracker" = "https://github.com/virgesmith/xenoform/issues"
+
 dependencies = [
     "itrx>=0.1.1",
     "numpy>=2.3.2",
