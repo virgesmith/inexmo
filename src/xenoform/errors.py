@@ -1,6 +1,14 @@
-class CompilationError(RuntimeError):
+class XenoformError(RuntimeError):
     pass
 
 
-class CppTypeError(RuntimeError):
+class AnnotationError(XenoformError):
+    pass
+
+
+class CompilationError(XenoformError):
+    pass
+
+
+class CppTypeError(XenoformError):
     pass
