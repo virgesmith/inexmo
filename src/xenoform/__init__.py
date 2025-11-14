@@ -5,7 +5,7 @@ __version__ = importlib.metadata.version("xenoform")
 
 from .compile import compile
 from .cppmodule import ReturnValuePolicy
-from .errors import CompilationError, CppTypeError
+from .errors import AnnotationError, CompilationError, CppTypeError
 from .types import CppQualifier
 from .utils import (
     Platform,
@@ -13,6 +13,7 @@ from .utils import (
 )
 
 __all__ = [
+    "AnnotationError",
     "CompilationError",
     "CppQualifier",
     "CppTypeError",

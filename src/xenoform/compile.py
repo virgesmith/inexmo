@@ -17,7 +17,7 @@ from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 
 from xenoform.cppmodule import FunctionSpec, ModuleSpec, ReturnValuePolicy
-from xenoform.errors import CompilationError
+from xenoform.errors import AnnotationError, CompilationError
 from xenoform.logger import get_logger
 from xenoform.utils import _deduplicate, get_function_scope, translate_function_signature
 
@@ -140,6 +140,20 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+def _check_annotations[**P, R](func: Callable[P, R]) -> None:
+    """Ensures all args and return are typed"""
+    sig = inspect.signature(func)
+
+    missing_annotations = ", ".join(
+        param for param, type_ in sig.parameters.items() if type_.annotation is inspect.Parameter.empty
+    )
+    if sig.return_annotation is inspect.Parameter.empty:
+        missing_annotations += ", (return)"
+
+    if missing_annotations:
+        raise AnnotationError(f"Function {func.__name__} has missing annotations: {missing_annotations}")
+
+
 @lru_cache  # limited function cache
 def _get_function(module_name: str, function_name: str) -> Callable[P, R]:
     module = _get_module(module_name)
@@ -186,6 +200,8 @@ def compile(
     def register_function(func: Callable[P, R]) -> Callable[P, R]:
         """This registers the function, actual compilation is deferred"""
         scope = get_function_scope(func)
+
+        _check_annotations(func)
 
         sig, args, headers = translate_function_signature(func)
         module_name = f"{Path(inspect.getfile(func)).stem}"

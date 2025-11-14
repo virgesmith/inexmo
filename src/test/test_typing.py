@@ -1,7 +1,10 @@
-from inspect import signature
+import inspect
 from typing import Annotated
 
-from xenoform import compile
+import pytest
+
+from xenoform.compile import _check_annotations, compile
+from xenoform.errors import AnnotationError
 
 
 @compile()
@@ -19,13 +22,32 @@ def test_typing() -> None:
         return f(i, x, b=b)
 
     assert wrap_f(42, 1.0, b=True) == "hello"
-    sig = signature(f)
+    sig = inspect.signature(f)
     assert sig.return_annotation is str
     assert "i" in sig.parameters and sig.parameters["i"].annotation is int
     assert "x" in sig.parameters and sig.parameters["x"].annotation is float
     assert "b" in sig.parameters and sig.parameters["b"].annotation is bool
 
 
+def untyped(x, y: Annotated[int, "blah"]):  # type: ignore[no-untyped-def]
+    pass
+
+
+def untyped_return(x: int, y: Annotated[int, "blah"]):  # type: ignore[no-untyped-def]
+    pass
+
+
+def typed_noargs() -> None:
+    pass
+
+
+def test_untyped() -> None:
+    with pytest.raises(AnnotationError):
+        _check_annotations(untyped)
+    with pytest.raises(AnnotationError):
+        _check_annotations(untyped_return)
+    _check_annotations(typed_noargs)
+
+
 if __name__ == "__main__":
-    test_typing()
-    print(signature(f))
+    test_untyped()
